@@ -13,17 +13,18 @@ module DM
         while true
           request = @connection.gets
           if request.nil? # better way to detect disconnect
+            @connection.close
             @connection = nil
             break
           else
-            handle_request(request.strip)
+            @connection.puts(handle_request(request.strip).join(","))
           end
         end
       end
     end
     
     def handle_request(request)
-      response = @server.handle_client_request(Request.new(request))
+      @server.handle_client_request(Request.new(request))
     end
   end
 end

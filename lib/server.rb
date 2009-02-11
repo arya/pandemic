@@ -37,14 +37,20 @@ module DM
     end
     
     def handle_client_request(request)
-      @peers.each {|peer| peer.client_request(request) }
+      # new threads to send to peers
+      # new thread to send to self
+      # sleep or and wake
+      request.max_responses = @peers.size + 1 #
+      @peers.each do |peer|
+        Thread.new(peer) {|p| p.client_request(request) }
+      end
+      Thread.new { request.add_response(self.process(request.body)) }
+      request.wait_for_responses
+      request.responses
     end
     
-    def process(request)
-      Thread.new do
-        sleep(rand(3) + 1)
-        request.add_response("answer to #{request.body} from #{@port}")
-      end
+    def process(body)
+      "answer from #{@port}"
     end
     
     def signature

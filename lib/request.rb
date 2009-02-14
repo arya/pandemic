@@ -9,6 +9,7 @@ module DM
       @body = body
       @responses = []
       @responses_mutex = Mutex.new
+      @complete = false
     end
     
     def add_response(response)
@@ -16,6 +17,7 @@ module DM
         @responses << response
         if @max_responses && @responses.size >= @max_responses
           @waiting_thread.wakeup if @waiting_thread
+          @complete = true
         end
       end
     end
@@ -29,6 +31,7 @@ module DM
     end
     
     def wait_for_responses
+      return if @complete
       @waiting_thread = Thread.current
       sleep 1 # TODO: Constantize
       @waiting_thread = nil
@@ -36,10 +39,6 @@ module DM
 
     def hash
       @hash ||= Digest::MD5.hexdigest("#{@@request_count} #{@body}")[0,10]
-    end
-
-    def signature
-      @signature ||= "#{self.hash} #{@body.size}" # TODO: will size work for unicode?
     end
   end
 end

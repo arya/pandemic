@@ -9,13 +9,12 @@ module DM
       @pending_requests = {}
       @outgoing_connection_mutex = Mutex.new
       @outgoing_connection = nil
-      
     end
     
     def connect
       Thread.new do
         @outgoing_connection_mutex.synchronize do
-          if @outgoing_connection.nil? # TODO: check to see if its closed/dead
+          if !self.connected?
             begin
               @outgoing_connection = TCPSocket.new(@host, @port)          
             rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED # TODO: any other exceptions?
@@ -27,12 +26,16 @@ module DM
       end
     end
     
-    def client_request(request)
+    def connected?
+      @outgoing_connection && !@outgoing_connection.closed? # TODO: any other indication that it's open?
+    end
+    
+    def client_request(request, body)
       Thread.new do
         @outgoing_connection_mutex.synchronize do
-          if @outgoing_connection
-            @outgoing_connection.puts("PROCESS #{request.signature}")
-            @outgoing_connection.puts(request.body)
+          if self.connected?
+            @outgoing_connection.puts("PROCESS #{request.hash} #{body.size}")
+            @outgoing_connection.puts(body)
             @pending_requests[request.hash] = request
           end # TODO: else? fail silently? reconnect?
         end
@@ -41,6 +44,7 @@ module DM
     
     def incoming_connection=(conn)
       @incoming_connection_listener.kill if @incoming_connection_listener # kill the previous one
+      @incoming_connection.close if @incoming_connection && @incoming_connection != conn
 
       @incoming_connection = conn
       self.connect
@@ -51,7 +55,6 @@ module DM
             @incoming_connection = nil
             @outgoing_connection.close if @outgoing_connection
             @outgoing_connection = nil
-            puts "Lost incoming connection with #{@port}, closing outgoing"
             break
           else
             handle_incoming_request(request) if request =~ /^PROCESS/
@@ -91,7 +94,7 @@ module DM
         end
         process_response(hash, response_body)
       else
-        # when the incoming request was malformed
+        # when the incoming response was malformed
         # TODO: what to do here? 
       end
     end
@@ -113,7 +116,5 @@ module DM
         original_request.add_response(body) if original_request
       end
     end
-    
-
   end
 end

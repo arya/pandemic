@@ -12,12 +12,16 @@ module DM
         @listener_thread = Thread.new do
           while true
             request = @connection.gets
-            if request.nil? # better way to detect disconnect
+            if request.nil? # TODO: better way to detect disconnect
               @connection.close
               @connection = nil
               break
-            else
-              @connection.puts(handle_request(request.strip)) # TODO: format it
+            elsif request =~ /^([0-9]+)$/ # currently only asking for request size
+              size = $1.to_i
+              body = @connection.read(size)
+              response = handle_request(body)
+              @connection.puts(response.size)
+              @connection.write(response)
             end
           end
         end

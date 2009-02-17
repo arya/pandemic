@@ -1,11 +1,35 @@
 require 'digest/md5'
 module DM
   class Request
-    @@request_count = 0
+    class RequestCounter
+      @@max = (2 ** 30) - 1
+      def initialize
+        @mutex = Mutex.new
+        @counter = 0
+      end
+      
+      def inc
+        @mutex.synchronize do
+          @counter += 1
+          @counter = 0 if @counter >= @@max # to avoid Bignum, it's about 4x slower
+          return @counter
+        end
+      end
+      
+      def to_s
+        @mutex.synchronize do
+          return @counter.to_s
+        end
+      end
+    end
+    
+    
+    @@request_count = RequestCounter.new
     attr_reader :body
     attr_accessor :max_responses
+    
     def initialize(body)
-      @@request_count += 1 # TODO: circle back to avoid big ints
+      @@request_count.inc
       @body = body
       @responses = []
       @responses_mutex = Mutex.new

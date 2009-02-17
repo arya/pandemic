@@ -10,9 +10,6 @@ require 'lib/request'
 require 'lib/handler'
 
 
-
-
 DM_SERVERS = %w{localhost:4000 localhost:4001 localhost:4002 localhost:4003}
 
-DM::Server.new(DM_SERVERS[ARGV.first.to_i], DM_SERVERS).start
-
+DM::Server.new(DM_SERVERS[ARGV.first.to_i], DM_SERVERS, DM::Handler).start

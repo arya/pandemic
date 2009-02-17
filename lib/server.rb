@@ -1,7 +1,7 @@
 module DM
   class Server < Base
     attr_reader :host, :port    
-    def initialize(bind_to, servers)
+    def initialize(bind_to, servers, handler)
       @host, @port = host_port(bind_to)
       @peers = {}
       @clients = []
@@ -10,6 +10,7 @@ module DM
         next if peer == bind_to # not a peer, it's itself
         @peers[peer] = Peer.new(peer, self)
       end
+      @handler = handler
     end
     
     def start
@@ -35,21 +36,23 @@ module DM
     end
     
     def handle_client_request(request)
-      map = Handler.map(request, @servers)
+      map = @handler.map(request, @servers)
       # TODO: should the map handle disconnected peers?
       request.max_responses = @peers.values.select {|p| p.connected? }.size + 1
       map.each do |peer, body|
         if @peers[peer]
-          Thread.new(@peers[peer], request, body) {|p, req, b| p.client_request(req, b) } 
+          Thread.new(@peers[peer], request, body) do |peer, request, body| 
+            peer.client_request(request, body)
+          end
         end
       end
       Thread.new { request.add_response(self.process(map[signature])) } if map[signature]
       request.wait_for_responses
-      Handler.reduce(request)
+      @handler.reduce(request)
     end
     
     def process(body)
-      Handler.process(body)
+      @handler.process(body)
     end
     
     def signature

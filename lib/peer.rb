@@ -34,9 +34,9 @@ module DM
       Thread.new do
         @outgoing_connection_mutex.synchronize do
           if self.connected?
-            @outgoing_connection.puts("PROCESS #{request.hash} #{body.size}")
-            @outgoing_connection.puts(body)
             @pending_requests[request.hash] = request
+            @outgoing_connection.puts("PROCESS #{request.hash} #{body.size}")
+            @outgoing_connection.write(body)
           end # TODO: else? fail silently? reconnect?
         end
       end
@@ -105,7 +105,7 @@ module DM
         response = @server.process(body)
         @outgoing_connection_mutex.synchronize do
           @outgoing_connection.puts("RESPONSE #{hash} #{response.size}")
-          @outgoing_connection.puts(response)
+          @outgoing_connection.write(response)
         end
       end
     end

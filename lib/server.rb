@@ -1,4 +1,4 @@
-module DM
+module Pandemic
   class Server < Base
     attr_reader :host, :port    
     def initialize(bind_to, servers, handler)

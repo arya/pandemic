@@ -1,4 +1,4 @@
-module DM
+module Pandemic
   class Client < Base
     def initialize(connection, server)
       super()

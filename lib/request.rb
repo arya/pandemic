@@ -1,5 +1,5 @@
 require 'digest/md5'
-module DM
+module Pandemic
   class Request
     class RequestCounter
       @@max = (2 ** 30) - 1

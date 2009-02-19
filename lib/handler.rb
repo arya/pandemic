@@ -1,4 +1,4 @@
-module DM
+module Pandemic
   class Handler
     class << self
       def map(request, servers)

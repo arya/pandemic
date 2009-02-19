@@ -10,6 +10,6 @@ require 'lib/request'
 require 'lib/handler'
 
 
-DM_SERVERS = %w{localhost:4000 localhost:4001 localhost:4002 localhost:4003}
+SERVERS = %w{localhost:4000 localhost:4001 localhost:4002 localhost:4003}
 
-DM::Server.new(DM_SERVERS[ARGV.first.to_i], DM_SERVERS, DM::Handler).start
+Pandemic::Server.new(SERVERS[ARGV.first.to_i], SERVERS, Pandemic::Handler).start

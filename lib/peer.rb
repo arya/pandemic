@@ -1,6 +1,5 @@
 module Pandemic
   class Peer < Base
-    # this class is what the server uses to connect/represent other servers
     attr_reader :host, :port
     def initialize(addr, server)
       super()

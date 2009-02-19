@@ -1,6 +1,7 @@
 module Pandemic
   class Handler
     class << self
+      # example/dummy handler
       def map(request, servers)
         count = 0
         servers.inject({}) {|h, e| h[e] = "#{request.body}:#{count+=1}"; h}

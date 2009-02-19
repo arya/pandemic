@@ -1,4 +1,3 @@
-require 'digest/md5'
 module Pandemic
   class Request
     class RequestCounter

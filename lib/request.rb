@@ -56,7 +56,7 @@ module Pandemic
     def wait_for_responses
       return if @complete
       @waiting_thread = Thread.current
-      sleep 1 # TODO: Constantize
+      sleep Config.response_timeout
       @waiting_thread = nil
     end
 

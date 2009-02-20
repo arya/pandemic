@@ -1,13 +1,13 @@
 module Pandemic
   class Server < Base
     attr_reader :host, :port    
-    def initialize(bind_to, servers, handler)
-      @host, @port = host_port(bind_to)
+    def initialize(handler)
+      @host, @port = host_port(Config.bind_to)
       @peers = {}
       @clients = []
-      @servers = servers
-      servers.each do |peer|
-        next if peer == bind_to # not a peer, it's itself
+      @servers = Config.servers
+      @servers.each do |peer|
+        next if peer == Config.bind_to # not a peer, it's itself
         @peers[peer] = Peer.new(peer, self)
       end
       @handler = handler

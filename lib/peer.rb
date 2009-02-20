@@ -25,6 +25,11 @@ module Pandemic
       end
     end
     
+    def disconnect
+      @outgoing_connection.close unless @outgoing_connection.nil? || @outgoing_connection.closed?
+      @incoming_connection.close unless @incoming_connection.nil? || @outgoing_connection.closed?
+    end
+    
     def connected?
       @outgoing_connection && !@outgoing_connection.closed? # TODO: any other indication that it's open?
     end
@@ -48,7 +53,7 @@ module Pandemic
       @incoming_connection = conn
       self.connect
       @incoming_connection_listener = Thread.new do
-        while true
+        while @server.running
           request = @incoming_connection.gets
           if request.nil? # TODO: better way to detect close of connection?
             @incoming_connection = nil

@@ -11,12 +11,12 @@ require 'lib/request'
 require 'lib/config'
 require 'lib/handler'
 
-Pandemic::Config.load
-server = Pandemic::Server.new(Pandemic::Handler)
-server.start
+
+Pandemic::Server.boot(Pandemic::Handler)
 
 # TODO:
 # - seperate as gem that is included then start using method call
 # - client side code
 # - two executables to create server and client
-# - graceful shutdown
+# - IO timeouts
+# - PING/PONG

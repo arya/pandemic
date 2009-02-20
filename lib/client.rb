@@ -10,7 +10,7 @@ module Pandemic
       unless @connection.nil?
         @listener_thread.kill if @listener_thread
         @listener_thread = Thread.new do
-          while true
+          while @server.running
             request = @connection.gets
             if request.nil? # TODO: better way to detect disconnect
               @connection.close
@@ -27,6 +27,10 @@ module Pandemic
         end
       end
       return self
+    end
+    
+    def close
+      @connection.close unless @connection.nil? || @connection.closed?
     end
     
     def handle_request(request)

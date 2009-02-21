@@ -74,8 +74,7 @@ module Pandemic
       end
     
       def handle_client_request(request)
-        map = @handler.map(request, @servers)
-        # TODO: should the map handle disconnected peers?
+        map = @handler.map(request, connection_statuses)
         request.max_responses = @peers.values.select {|p| p.connected? }.size + 1
         map.each do |peer, body|
           if @peers[peer]
@@ -95,6 +94,17 @@ module Pandemic
     
       def signature
         "#{@host}:#{@port}"
+      end
+      
+      def connection_statuses
+        @servers.inject({}) do |statuses, server|
+          if server == signature
+            statuses[server] = :self
+          else
+            statuses[server] = @peers[server].connected? ? :connected : :disconnected
+          end
+          statuses
+        end
       end
     end
   end

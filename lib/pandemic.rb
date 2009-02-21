@@ -12,7 +12,7 @@ require 'pandemic/server_side/config'
 require 'pandemic/server_side/handler'
 
 # TODO:
-# - seperate as gem that is included then start using method call
+# - work on protocol specs
 # - client side code
 # - two executables to create server and client
 # - IO timeouts

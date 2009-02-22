@@ -17,3 +17,9 @@ require 'pandemic/server_side/handler'
 # - two executables to create server and client
 # - IO timeouts
 # - PING/PONG
+
+def epidemic!(handler)
+  Pandemic::ServerSide::Server.boot(handler)
+end
+
+::Pandemize = Pandemic::ClientSide::Pandemize

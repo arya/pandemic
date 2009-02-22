@@ -17,7 +17,7 @@ module Pandemic
                 @connection.close
                 @connection = nil
                 break
-              elsif request =~ /^([0-9]+)$/ # currently only asking for request size
+              elsif request.strip! =~ /^([0-9]+)$/ # currently only asking for request size
                 size = $1.to_i
                 body = @connection.read(size)
                 response = handle_request(body)

@@ -1,6 +1,0 @@
-servers:
-  - localhost:4000
-  - localhost:4001
-  - localhost:4002
-  
-response_timeout: 0.5

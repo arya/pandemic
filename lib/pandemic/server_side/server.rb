@@ -1,6 +1,7 @@
 module Pandemic
   module ServerSide
-    class Server < Base
+    class Server
+      include Util
       class StopServer < Exception; end
       class << self
         def boot(handler)
@@ -30,6 +31,7 @@ module Pandemic
         @host, @port = host_port(Config.bind_to)
         @peers = {}
         @clients = []
+        @clients_mutex = Mutex.new
         @servers = Config.servers
         @servers.each do |peer|
           next if peer == Config.bind_to # not a peer, it's itself
@@ -67,7 +69,9 @@ module Pandemic
           matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
           matching_peer.incoming_connection = connection unless matching_peer.nil?
         elsif identification =~ /^CLIENT$/
-          @clients << Client.new(connection, self).listen
+          @clients_mutex.synchronize do
+            @clients << Client.new(connection, self).listen
+          end
         else
           connection.close # i dunno you
         end
@@ -104,6 +108,12 @@ module Pandemic
             statuses[server] = @peers[server].connected? ? :connected : :disconnected
           end
           statuses
+        end
+      end
+      
+      def client_closed(client)
+        @clients_mutex.synchronize do
+          @clients.delete(client)
         end
       end
     end

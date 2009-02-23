@@ -2,7 +2,7 @@ require 'rubygems'
 require 'rake'
 require 'echoe'
 
-Echoe.new('pandemic', '0.1.0') do |p|
+Echoe.new('pandemic', '0.2') do |p|
   p.description    = "Distribute MapReduce to any of the workers and it will spread, like a pandemic."
   p.url            = ""
   p.author         = "Arya Asemanfar"

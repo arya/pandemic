@@ -33,7 +33,7 @@ module Pandemic
           if index && (path = ARGV[index + 1])
             path
           else
-            "config.yml"
+            "pandemic_server.yml"
           end
         end
       end

@@ -1,6 +1,7 @@
 module Pandemic
   module ServerSide
-    class Client < Base
+    class Client
+      include Util
       def initialize(connection, server)
         super()
         @connection = connection
@@ -25,6 +26,7 @@ module Pandemic
                 @connection.write(response)
               end
             end
+            @server.client_closed(self)
           end
         end
         return self

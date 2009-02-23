@@ -1,6 +1,7 @@
 module Pandemic
   module ServerSide
-    class Peer < Base
+    class Peer
+      include Util
       attr_reader :host, :port
       def initialize(addr, server)
         super()

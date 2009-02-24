@@ -8,8 +8,9 @@ module Pandemic
         @available = []
         @grouped_connections = Hash.new { |hash, key| hash[key] = [] }
         @grouped_available = Hash.new { |hash, key| hash[key] = [] }
-        @mutex = Mutex.new
+        @mutex = Monitor.new
         @connection_proxies = {}
+        @queue = @mutex.new_cond # TODO: there should be a queue for each group
         
         Config.servers.each_with_index do |server_addr, key|
           @connection_proxies[key] = ConnectionProxy.new(key, self)
@@ -56,18 +57,24 @@ module Pandemic
         connection = nil
         select_from = key.nil? ? @available : @grouped_available[key]
         @mutex.synchronize do
-          if select_from.size > 0
-            connection = select_from.pop
-            if key.nil?
-              @grouped_available[key].delete(connection)
+          loop do
+            if select_from.size > 0
+              connection = select_from.pop
+              if key.nil?
+                @grouped_available[key].delete(connection)
+              else
+                @available.delete(connection)
+              end
+              break
+            elsif (connection = create_connection(key))
+              @connections << connection
+              @grouped_connections[key] << connection
+              break
+            elsif @queue.wait(Config.connection_wait_timeout)
+              next
             else
-              @available.delete(connection)
+              raise "Timed out waiting for connection"
             end
-          elsif (connection = create_connection(key))
-            @connections << connection
-            @grouped_connections[key] << connection
-          else
-            #TODO: wait and try again then throw exception
           end
         end
         return connection
@@ -77,6 +84,7 @@ module Pandemic
         @mutex.synchronize do
           @available.unshift(connection)
           @grouped_available[connection.key].unshift(connection)
+          @queue.signal
         end
       end
       

@@ -12,21 +12,24 @@ module Pandemic
         unless @connection.nil?
           @listener_thread.kill if @listener_thread
           @listener_thread = Thread.new do
-            while @server.running
-              request = @connection.gets
-              if request.nil? # TODO: better way to detect disconnect
-                @connection.close
-                @connection = nil
-                break
-              elsif request.strip! =~ /^([0-9]+)$/ # currently only asking for request size
-                size = $1.to_i
-                body = @connection.read(size)
-                response = handle_request(body)
-                @connection.puts(response.size)
-                @connection.write(response)
+            begin
+              while @server.running
+                request = @connection.gets
+                if request.nil? # TODO: better way to detect disconnect
+                  @connection.close
+                  @connection = nil
+                  break
+                elsif request.strip! =~ /^([0-9]+)$/ # currently only asking for request size
+                  size = $1.to_i
+                  body = @connection.read(size)
+                  response = handle_request(body)
+                  @connection.puts(response.size)
+                  @connection.write(response)
+                end
               end
+            ensure
+              @server.client_closed(self)
             end
-            @server.client_closed(self)
           end
         end
         return self

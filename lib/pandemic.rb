@@ -1,5 +1,7 @@
 require 'socket'
+require 'fastthread'
 require 'thread'
+require 'monitor'
 require 'yaml'
 require 'digest/md5'
 

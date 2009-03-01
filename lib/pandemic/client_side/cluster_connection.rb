@@ -46,14 +46,14 @@ module Pandemic
       def with_connection(key, &block)
         connection = nil
         begin
-          connection = grab_connection(key)
+          connection = checkout_connection(key)
           block.call(connection.socket)
         ensure
-          return_connection(connection) if connection
+          checkin_connection(connection) if connection
         end
       end
       
-      def grab_connection(key)
+      def checkout_connection(key)
         connection = nil
         select_from = key.nil? ? @available : @grouped_available[key]
         @mutex.synchronize do
@@ -80,7 +80,7 @@ module Pandemic
         return connection
       end
       
-      def return_connection(connection)
+      def checkin_connection(connection)
         @mutex.synchronize do
           @available.unshift(connection)
           @grouped_available[connection.key].unshift(connection)
@@ -89,10 +89,12 @@ module Pandemic
       end
       
       def create_connection(key)
-        host, port = host_port(Config.servers[key])
         return nil if @grouped_connections[key].size >= Config.max_connections_per_server
+        host, port = host_port(Config.servers[key])
         Connection.new(host, port, key)
       end
+      
+      #TODO: a thread to manage killing and reviving connections
     end
   end
 end

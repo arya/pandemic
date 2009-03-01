@@ -13,7 +13,8 @@ module Pandemic
           @response_timeout = (yaml['response_timeout'] || 1).to_f
           @bind_to = extract_bind_to
         end
-      
+        
+        private
         def extract_bind_to
           index = ARGV.index('-i')
           index2 = ARGV.index('-a')

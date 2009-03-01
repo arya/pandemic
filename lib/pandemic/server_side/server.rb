@@ -41,13 +41,18 @@ module Pandemic
       end
     
       def start
+        debug("Listening")
         @listener = TCPServer.new(@host, @port)
         @peers.values.each { |peer| peer.connect }
         @listener_thread = Thread.new do
           begin
             while @running
-              conn = @listener.accept
-              Thread.new(conn) { |c| handle_connection(c) }
+              begin
+                conn = @listener.accept
+                Thread.new(conn) { |c| handle_connection(c) }
+              rescue Errno::ECONNABORTED, Errno::EINTR 
+                conn.close if conn && !conn.closed?
+              end
             end
           rescue StopServer
             @listener.close if @listener
@@ -64,11 +69,15 @@ module Pandemic
     
       def handle_connection(connection)
         identification = connection.gets.strip
+        debug("Incoming connection (#{identification})")
         if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/
+          debug("Recognized as peer")
           host, port = host_port($1)
           matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
+          debug("Found matching peer")
           matching_peer.incoming_connection = connection unless matching_peer.nil?
         elsif identification =~ /^CLIENT$/
+          debug("Recognized as client")
           @clients_mutex.synchronize do
             @clients << Client.new(connection, self).listen
           end
@@ -115,6 +124,10 @@ module Pandemic
         @clients_mutex.synchronize do
           @clients.delete(client)
         end
+      end
+      
+      def debug(msg)
+        logger.debug("Server #{@host}:#{@port}") {msg}
       end
     end
   end

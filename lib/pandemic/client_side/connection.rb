@@ -8,20 +8,19 @@ module Pandemic
       end
       
       def alive?
-        !!@socket
+        @socket && !@socket.closed?
       end
 
       private
       def connect
-        begin
+        @socket = begin
           connection = TCPSocket.new(@host, @port)
           connection.puts("CLIENT")
           if !connection.closed? # TOODO: improve condition
-            @socket = connection
+            connection
           else
             nil
           end
-          # TODO: add more timeout options/exception handling
         rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED
           nil
         end

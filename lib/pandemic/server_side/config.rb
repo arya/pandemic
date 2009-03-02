@@ -9,13 +9,15 @@ module Pandemic
         
           @server_map = yaml['servers'] || []
           @servers = @server_map.is_a?(Hash) ? @server_map.values : @server_map 
+          @servers = @servers.collect { |s| s.is_a?(Hash) ? s.keys.first : s }
         
           @response_timeout = (yaml['response_timeout'] || 1).to_f
           @bind_to = extract_bind_to
+          raise "Interface to bind to is nil." unless @bind_to
         end
         
         def get(*args)
-          @options.values_at(*args)
+          args.size == 1 ?  @options[args.first] : @options.values_at(*args) if @options
         end
         
         private
@@ -25,8 +27,13 @@ module Pandemic
 
           if index && (key = ARGV[index + 1])
             key = key.to_i if @server_map.is_a?(Array)
-            @options = @server_map[key].values.first #TODO: make standardized
-            @server_map[key].keys.first
+            server = @server_map[key]
+            if server.is_a?(Hash)
+              @options = server.values.first # there should only be one
+              @server_map[key].keys.first
+            else
+              server
+            end
           elsif index2 && (host = ARGV[index2 + 1])
             host
           else

@@ -32,7 +32,7 @@ module Pandemic
         @peers = {}
         @clients = []
         @clients_mutex = Mutex.new
-        @servers = Config.servers.collect{|s| s.keys.first}
+        @servers = Config.servers
         @servers.each do |peer|
           next if peer == Config.bind_to # not a peer, it's itself
           @peers[peer] = Peer.new(peer, self)

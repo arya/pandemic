@@ -38,26 +38,27 @@ module Pandemic
     
       def add_response(response)
         @responses_mutex.synchronize do
+          return if @responses.frozen? # too late
           @responses << response
           if @max_responses && @responses.size >= @max_responses
-            @waiting_thread.wakeup if @waiting_thread
+            @waiting_thread.wakeup if @waiting_thread && @waiting_thread.status == "sleep"
             @complete = true
           end
         end
       end
     
       def responses
-        response = nil
-        @responses_mutex.synchronize do
-          response = @responses.clone # don't want to add things mid-way
-        end
-        response
+        @responses # its frozen so we don't have to worry about mutex
       end
     
       def wait_for_responses
         return if @complete
         @waiting_thread = Thread.current
         sleep Config.response_timeout
+        # there is a race case where if the sleep finishes, 
+        # and response comes in and has the mutex, and then array is frozen
+        # it would be ideal to use monitor wait/signal here but the monitor implementation is currently flawed
+        @responses_mutex.synchronize { @responses.freeze! }
         @waiting_thread = nil
       end
 

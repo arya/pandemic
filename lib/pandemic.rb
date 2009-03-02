@@ -22,11 +22,9 @@ require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
 
 # TODO:
-# - fix config format
+# - try using syswrite/sysread instead
 # - peer connection pool
-# - discard late responses
 # - work on protocol specs
-# - client side code
 # - IO timeouts
 # - PING/PONG?
 

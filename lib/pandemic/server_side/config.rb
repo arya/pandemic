@@ -14,6 +14,10 @@ module Pandemic
           @bind_to = extract_bind_to
         end
         
+        def get(*args)
+          @options.values_at(*args)
+        end
+        
         private
         def extract_bind_to
           index = ARGV.index('-i')
@@ -21,7 +25,8 @@ module Pandemic
 
           if index && (key = ARGV[index + 1])
             key = key.to_i if @server_map.is_a?(Array)
-            @server_map[key]
+            @options = @server_map[key].values.first #TODO: make standardized
+            @server_map[key].keys.first
           elsif index2 && (host = ARGV[index2 + 1])
             host
           else

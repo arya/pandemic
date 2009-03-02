@@ -3,6 +3,7 @@ module Pandemic
     class Peer
       include Util
       attr_reader :host, :port
+      
       def initialize(addr, server)
         super()
         @host, @port = host_port(addr)
@@ -27,7 +28,7 @@ module Pandemic
               else
                 debug("Connection successful")
               end
-              @outgoing_connection.puts("SERVER #{@server.signature}") if @outgoing_connection
+              @outgoing_connection.write("SERVER #{@server.signature}\n") if @outgoing_connection
             end
           end
         end
@@ -51,8 +52,7 @@ module Pandemic
             if self.connected?
               debug("Sending client's request")
               @pending_requests[request.hash] = request
-              @outgoing_connection.puts("PROCESS #{request.hash} #{body.size}")
-              @outgoing_connection.write(body)
+              @outgoing_connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
               debug("Finished sending client's request")
             end # TODO: else? fail silently? reconnect?
           end
@@ -135,8 +135,7 @@ module Pandemic
           debug("Processing finished (#{hash})")
           @outgoing_connection_mutex.synchronize do
             debug( "Sending response (#{hash})")
-            @outgoing_connection.puts("RESPONSE #{hash} #{response.size}")
-            @outgoing_connection.write(response)
+            @outgoing_connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
             debug( "Finished sending response (#{hash})")
           end
         end

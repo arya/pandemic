@@ -4,12 +4,12 @@ module Pandemic
       include Util
       class StopServer < Exception; end
       class << self
-        def boot(handler)
+        def boot
           Config.load
-          Process.setrlimit(Process::RLIMIT_NOFILE, 4096) # arbitrary high number of max file descriptors.
-          server = self.new(handler)
+          # Process.setrlimit(Process::RLIMIT_NOFILE, 4096) # arbitrary high number of max file descriptors.
+          server = self.new
           set_signal_traps(server)
-          server.start.join
+          server
         end
       
         private
@@ -26,21 +26,25 @@ module Pandemic
         end
       end
       attr_reader :host, :port, :running
-      def initialize(handler)
+      def initialize
         @running = true
         @host, @port = host_port(Config.bind_to)
         @peers = {}
         @clients = []
         @clients_mutex = Mutex.new
-        @servers = Config.servers
+        @servers = Config.servers.collect{|s| s.keys.first}
         @servers.each do |peer|
           next if peer == Config.bind_to # not a peer, it's itself
           @peers[peer] = Peer.new(peer, self)
         end
+      end
+      
+      def handler=(handler)
         @handler = handler
       end
     
       def start
+        raise "You must specify a handler" unless @handler
         debug("Listening")
         @listener = TCPServer.new(@host, @port)
         @peers.values.each { |peer| peer.connect }
@@ -88,7 +92,7 @@ module Pandemic
     
       def handle_client_request(request)
         map = @handler.map(request, connection_statuses)
-        request.max_responses = @peers.values.select {|p| p.connected? }.size + 1
+        request.max_responses = map.size #@peers.values.select {|p| p.connected? }.size + 1
         map.each do |peer, body|
           if @peers[peer]
             Thread.new(@peers[peer], request, body) do |peer, request, body| 

@@ -34,8 +34,7 @@ module Pandemic
       
       def request(body, key = nil)
         with_connection(key) do |socket|
-          socket.puts(body.size)
-          socket.write(body)
+          socket.write("#{body.size}\n#{body}")
           
           response_size = socket.gets.strip.to_i
           socket.read(response_size)

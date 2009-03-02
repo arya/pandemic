@@ -15,6 +15,7 @@ module Pandemic
             begin
               while @server.running
                 request = @connection.gets
+                
                 if request.nil? # TODO: better way to detect disconnect
                   @connection.close
                   @connection = nil
@@ -23,8 +24,7 @@ module Pandemic
                   size = $1.to_i
                   body = @connection.read(size)
                   response = handle_request(body)
-                  @connection.puts(response.size)
-                  @connection.write(response)
+                  @connection.write("#{response.size}\n#{response}")
                 end
               end
             ensure

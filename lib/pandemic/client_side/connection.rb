@@ -15,7 +15,7 @@ module Pandemic
       def connect
         @socket = begin
           connection = TCPSocket.new(@host, @port)
-          connection.puts("CLIENT")
+          connection.write("CLIENT\n")
           if !connection.closed? # TOODO: improve condition
             connection
           else

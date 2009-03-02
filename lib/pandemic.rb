@@ -1,5 +1,5 @@
 require 'socket'
-require 'fastthread'
+require 'fastthread' if RUBY_VERSION < '1.9'
 require 'thread'
 require 'monitor'
 require 'yaml'
@@ -22,16 +22,20 @@ require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
 
 # TODO:
+# - fix config format
+# - peer connection pool
+# - discard late responses
 # - work on protocol specs
 # - client side code
 # - IO timeouts
 # - PING/PONG?
 
-$logger = Logger.new(STDOUT)
-$logger.level = Logger::DEBUG
 
-def epidemic!(handler)
-  Pandemic::ServerSide::Server.boot(handler)
+$logger = Logger.new(STDOUT)
+$logger.level = Logger::INFO
+
+def epidemic!
+  Pandemic::ServerSide::Server.boot
 end
 
 ::Pandemize = Pandemic::ClientSide::Pandemize

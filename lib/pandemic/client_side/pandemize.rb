@@ -3,11 +3,14 @@ module Pandemic
     module Pandemize
       def self.included(klass)
         klass.class_eval do
-          @@pandemize_connection ||= Pandemic::ClientSide::ClusterConnection.new
+          @pandemize_connection ||= Pandemic::ClientSide::ClusterConnection.new
+          def self.pandemize_connection
+            @pandemize_connection
+          end
         end
       end
       def pandemic
-        @@pandemize_connection
+        self.class.pandemize_connection
       end
     end
   end

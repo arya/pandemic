@@ -27,7 +27,7 @@ module Pandemic
       @@request_count = RequestCounter.new
       attr_reader :body
       attr_accessor :max_responses
-    
+      
       def initialize(body)
         @@request_count.inc
         @body = body
@@ -58,7 +58,7 @@ module Pandemic
         # there is a race case where if the sleep finishes, 
         # and response comes in and has the mutex, and then array is frozen
         # it would be ideal to use monitor wait/signal here but the monitor implementation is currently flawed
-        @responses_mutex.synchronize { @responses.freeze! }
+        @responses_mutex.synchronize { @responses.freeze }
         @waiting_thread = nil
       end
 

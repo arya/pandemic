@@ -79,7 +79,7 @@ module Pandemic
           host, port = host_port($1)
           matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
           debug("Found matching peer")
-          matching_peer.incoming_connection = connection unless matching_peer.nil?
+          matching_peer.add_incoming_connection(connection) unless matching_peer.nil?
         elsif identification =~ /^CLIENT$/
           debug("Recognized as client")
           @clients_mutex.synchronize do

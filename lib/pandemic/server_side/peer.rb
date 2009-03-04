@@ -1,7 +1,9 @@
 module Pandemic
   module ServerSide
     class Peer
+      class PeerUnavailableException < Exception; end
       include Util
+      include ConnectionPool
       attr_reader :host, :port
       
       def initialize(addr, server)
@@ -9,85 +11,85 @@ module Pandemic
         @host, @port = host_port(addr)
         @server = server
         @pending_requests = {}
-        @outgoing_connection_mutex = Mutex.new
-        @outgoing_connection = nil
+        @incoming_connection_listeners = []
+        @inc_threads_mutex = Mutex.new
       end
-    
+      
+      def create_connection
+        connection = nil
+        begin
+          connection = TCPSocket.new(@host, @port)
+        rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED
+          raise PeerUnavailableException
+          connection = nil
+        end
+        connection.write("SERVER #{@server.signature}\n") if connection
+        return connection
+      end
+      
+      def destroy_connection(connection)
+        connection.close if connection && !connection.closed?
+      end
+      
       def connect
-        debug("Trying to connect to peer")
-        Thread.new do
-          @outgoing_connection_mutex.synchronize do
-            debug("Grabbed outgoing connection mutex")
-            if !self.connected?
-              debug("Not connected, attempting connection")
-              begin
-                @outgoing_connection = TCPSocket.new(@host, @port)          
-              rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED # TODO: any other exceptions?
-                debug("Connection timed out or refused")
-                @outgoing_connection = nil
-              else
-                debug("Connection successful")
-              end
-              @outgoing_connection.write("SERVER #{@server.signature}\n") if @outgoing_connection
-            end
-          end
+        return if connected?
+        begin
+          with_connection {|c|}
+        rescue PeerUnavailableException
         end
       end
-    
-      def disconnect
-        debug("Disconnecting from peer")
-        @outgoing_connection.close unless @outgoing_connection.nil? || @outgoing_connection.closed?
-        @incoming_connection.close unless @incoming_connection.nil? || @outgoing_connection.closed?
-      end
-    
+      
       def connected?
-        @outgoing_connection && !@outgoing_connection.closed? # TODO: any other indication that it's open?
+        @available.size > 0
       end
     
       def client_request(request, body)
         debug("Sending client's request to peer")
         Thread.new do
-          @outgoing_connection_mutex.synchronize do
-            debug("Grabbed outgoing connection mutex") 
-            if self.connected?
+          with_connection do |connection|
+            if connection && !connection.closed?
               debug("Sending client's request")
               @pending_requests[request.hash] = request
-              @outgoing_connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
+              connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
               debug("Finished sending client's request")
             end # TODO: else? fail silently? reconnect?
           end
         end
       end
     
-      def incoming_connection=(conn)
+      def add_incoming_connection(conn)
         debug("Setting incoming connection")
-        @incoming_connection_listener.kill if @incoming_connection_listener # kill the previous one
-        @incoming_connection.close if @incoming_connection && @incoming_connection != conn
-
-        @incoming_connection = conn
-        self.connect
-        @incoming_connection_listener = Thread.new do
+        
+        connect # if we're not connected, we should be
+        
+        thread = Thread.new(conn) do |connection|
           debug("Incoming connection thread started")
-          while @server.running
-            debug("Listening for incoming requests")
-            request = @incoming_connection.gets
-            if request.nil? # TODO: better way to detect close of connection?
-              debug("Incoming connection request is nil")
-              @incoming_connection = nil
-              @outgoing_connection.close if @outgoing_connection
-              @outgoing_connection = nil
-              break
-            else
-              debug("Received incoming (#{request.strip})")
-              handle_incoming_request(request) if request =~ /^PROCESS/
-              handle_incoming_response(request) if request =~ /^RESPONSE/
+          begin
+            while @server.running
+              debug("Listening for incoming requests")
+              request = connection.gets
+              if request.nil? # TODO: better way to detect close of connection?
+                debug("Incoming connection request is nil")
+                break
+              else
+                debug("Received incoming (#{request.strip})")
+                handle_incoming_request(request, connection) if request =~ /^PROCESS/
+                handle_incoming_response(request, connection) if request =~ /^RESPONSE/
+              end
+            end
+          ensure
+            conn.close if conn && !conn.closed?
+            @inc_threads_mutex.synchronize { @incoming_connection_listeners.delete(Thread.current)}
+            if @incoming_connection_listeners.empty?
+              disconnect
             end
           end
         end
-      
+        
+        @inc_threads_mutex.synchronize {@incoming_connection_listeners.push(thread)}
       end
     
-      def handle_incoming_request(request)
+      def handle_incoming_request(request, connection)
         debug("Identified as request")
         if request.strip =~ /^PROCESS ([A-Za-z0-9]+) ([0-9]+)$/
           hash = $1
@@ -95,7 +97,7 @@ module Pandemic
           debug("Incoming request: #{size} #{hash}")
           begin
             debug("Reading request body")
-            request_body = @incoming_connection.read(size)
+            request_body = connection.read(size)
             debug("Finished reading request body")
           rescue EOFError, TruncatedDataError
             debug("Failed to read request body")
@@ -110,12 +112,12 @@ module Pandemic
         end
       end
     
-      def handle_incoming_response(response)
+      def handle_incoming_response(response, connection)
         if response.strip =~ /^RESPONSE ([A-Za-z0-9]+) ([0-9]+)$/
           hash = $1
           size = $2.to_i
           begin
-            response_body = @incoming_connection.read(size)
+            response_body = connection.read(size)
           rescue EOFError, TruncatedDataError
             # TODO: what to do here?
             return false
@@ -133,9 +135,9 @@ module Pandemic
           debug("Starting processing thread (#{hash})")
           response = @server.process(body)
           debug("Processing finished (#{hash})")
-          @outgoing_connection_mutex.synchronize do
+          with_connection do |connection|
             debug( "Sending response (#{hash})")
-            @outgoing_connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
+            connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
             debug( "Finished sending response (#{hash})")
           end
         end

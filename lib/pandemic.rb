@@ -7,6 +7,7 @@ require 'digest/md5'
 require 'logger'
 
 require 'pandemic/util'
+require 'pandemic/connection_pool'
 
 require 'pandemic/server_side/config'
 require 'pandemic/server_side/client'

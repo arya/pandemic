@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'socket'
 require 'fastthread' if RUBY_VERSION < '1.9'
 require 'thread'
@@ -32,6 +33,7 @@ require 'pandemic/client_side/pandemize'
 
 $logger = Logger.new(STDOUT)
 $logger.level = Logger::INFO
+$logger.datetime_format = "%Y-%m-%d %H:%M:%S "
 
 def epidemic!
   Pandemic::ServerSide::Server.boot

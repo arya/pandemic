@@ -3,53 +3,41 @@ module Pandemic
     class Peer
       class PeerUnavailableException < Exception; end
       include Util
-      include ConnectionPool
       attr_reader :host, :port
       
       def initialize(addr, server)
         super()
         @host, @port = host_port(addr)
         @server = server
-        @pending_requests = {}
+        @pending_requests = with_mutex({})
         @incoming_connection_listeners = []
         @inc_threads_mutex = Mutex.new
-      end
-      
-      def create_connection
-        connection = nil
-        begin
-          connection = TCPSocket.new(@host, @port)
-        rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED
-          raise PeerUnavailableException
-          connection = nil
-        end
-        connection.write("SERVER #{@server.signature}\n") if connection
-        return connection
-      end
-      
-      def destroy_connection(connection)
-        connection.close if connection && !connection.closed?
+        initialize_connection_pool
       end
       
       def connect
         return if connected?
-        begin
-          with_connection {|c|}
-        rescue PeerUnavailableException
-        end
+        @connection_pool.add_connection!
+      end
+      
+      def disconnect
+        @connection_pool.disconnect
       end
       
       def connected?
-        @available.size > 0
+        @connection_pool.available?
       end
     
       def client_request(request, body)
         debug("Sending client's request to peer")
         Thread.new do
-          with_connection do |connection|
+          @connection_pool.with_connection do |connection|
+            # puts("Grabbed outgoing connection from pool (#{@connection_pool.available} / #{@connection_pool.size})")
             if connection && !connection.closed?
               debug("Sending client's request")
-              @pending_requests[request.hash] = request
+              @pending_requests.synchronize do
+                @pending_requests[request.hash] = request
+              end
               connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
               debug("Finished sending client's request")
             end # TODO: else? fail silently? reconnect?
@@ -86,7 +74,25 @@ module Pandemic
           end
         end
         
-        @inc_threads_mutex.synchronize {@incoming_connection_listeners.push(thread)}
+        @inc_threads_mutex.synchronize {@incoming_connection_listeners.push(thread) if thread.alive? }
+      end
+    
+      private
+      def initialize_connection_pool
+        return if @connection_pool
+        @connection_pool = ConnectionPool.new
+        
+        @connection_pool.create_connection do
+          connection = nil
+          begin
+            connection = TCPSocket.new(@host, @port)
+          rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED
+            connection = nil
+          end
+          connection.write("SERVER #{@server.signature}\n") if connection
+          connection
+        end
+        
       end
     
       def handle_incoming_request(request, connection)
@@ -135,7 +141,7 @@ module Pandemic
           debug("Starting processing thread (#{hash})")
           response = @server.process(body)
           debug("Processing finished (#{hash})")
-          with_connection do |connection|
+          @connection_pool.with_connection do |connection|
             debug( "Sending response (#{hash})")
             connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
             debug( "Finished sending response (#{hash})")
@@ -145,7 +151,7 @@ module Pandemic
     
       def process_response(hash, body)
         Thread.new do # because this part can be blocking and we don't want to wait for the
-          original_request = @pending_requests.delete(hash)
+          original_request = @pending_requests.synchronize { @pending_requests.delete(hash) }
           original_request.add_response(body) if original_request
         end
       end

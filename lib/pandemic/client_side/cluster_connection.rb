@@ -88,6 +88,17 @@ module Pandemic
       end
       
       def create_connection(key)
+        if key.nil?
+          # find a key where we can add more connections
+          min, min_key = nil, nil
+          @grouped_connections.each do |key, list|
+            if min.nil? || list.size < min
+              min_key = key
+              min = list.size
+            end
+          end
+          key = min_key
+        end
         return nil if @grouped_connections[key].size >= Config.max_connections_per_server
         host, port = host_port(Config.servers[key])
         Connection.new(host, port, key)

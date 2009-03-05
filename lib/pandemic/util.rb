@@ -18,5 +18,9 @@ module Pandemic
         $stdout.puts("#{title} #{@times[title]}")
       end
     end
+    
+    def with_mutex(obj)
+      obj.extend(MonitorMixin)
+    end
   end
 end

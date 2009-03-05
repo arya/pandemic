@@ -15,12 +15,6 @@ module Pandemic
             return @counter
           end
         end
-      
-        def to_s
-          @mutex.synchronize do
-            return @counter.to_s
-          end
-        end
       end
     
     
@@ -29,7 +23,7 @@ module Pandemic
       attr_accessor :max_responses
       
       def initialize(body)
-        @@request_count.inc
+        @request_number = @@request_count.inc
         @body = body
         @responses = []
         @responses_mutex = Mutex.new
@@ -61,9 +55,9 @@ module Pandemic
         @responses_mutex.synchronize { @responses.freeze }
         @waiting_thread = nil
       end
-
+      
       def hash
-        @hash ||= Digest::MD5.hexdigest("#{@@request_count} #{@body}")[0,10]
+        @hash ||= Digest::MD5.hexdigest("#{@request_number} #{@body}")[0,10]
       end
     end
   end

@@ -24,10 +24,10 @@ require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
 
 # TODO:
-# - try using syswrite/sysread instead
-# - peer connection pool
+# - look into dropping connections
+# - benchmark critical path
+# - IO timeouts/robustness
 # - work on protocol specs
-# - IO timeouts
 # - PING/PONG?
 
 

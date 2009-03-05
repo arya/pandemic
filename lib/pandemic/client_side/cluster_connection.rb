@@ -1,6 +1,10 @@
 module Pandemic
   module ClientSide
     class ClusterConnection
+      class NotEnoughConnectionsTimeout < Exception; end
+      class NoNodesAvailable < Exception; end
+      class LostConnectionToNode < Exception; end
+      
       include Util
       def initialize
         Config.load
@@ -34,10 +38,18 @@ module Pandemic
       
       def request(body, key = nil)
         with_connection(key) do |socket|
-          socket.write("#{body.size}\n#{body}")
-          
-          response_size = socket.gets.strip.to_i
-          socket.read(response_size)
+          begin
+            socket.write("#{body.size}\n#{body}")
+            response_size = socket.gets
+            if response_size
+              socket.read(response_size.strip.to_i)
+            else
+              # nil response size
+              raise LostConnectionToNode
+            end
+          rescue Errno::ECONNRESET
+            raise LostConnectionToNode
+          end
         end
       end
       
@@ -55,6 +67,7 @@ module Pandemic
       def checkout_connection(key)
         connection = nil
         select_from = key.nil? ? @available : @grouped_available[key]
+        all_connections = key.nil? ? @connections : @grouped_connections[key]
         @mutex.synchronize do
           loop do
             if select_from.size > 0
@@ -65,14 +78,18 @@ module Pandemic
                 @available.delete(connection)
               end
               break
-            elsif (connection = create_connection(key))
+            elsif (connection = create_connection(key)) && connection.alive?
               @connections << connection
               @grouped_connections[key] << connection
               break
-            elsif @queue.wait(Config.connection_wait_timeout)
+            elsif all_connections.size > 0 && @queue.wait(Config.connection_wait_timeout)
               next
             else
-              raise "Timed out waiting for connection"
+              if all_connections.size > 0
+                raise NotEnoughConnectionsTimeout
+              else
+                raise NoNodesAvailable
+              end
             end
           end
         end

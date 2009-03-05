@@ -60,6 +60,8 @@ module Pandemic
             end
           rescue StopServer
             @listener.close if @listener
+            @peers.values.each { |p| p.disconnect }
+            @clients.each {|c| c.close }
           end
         end
       end
@@ -67,8 +69,6 @@ module Pandemic
       def stop
         @running = false
         @listener_thread.raise(StopServer)
-        @peers.values.each { |p| p.disconnect }
-        @clients.each {|c| c.close }
       end
     
       def handle_connection(connection)

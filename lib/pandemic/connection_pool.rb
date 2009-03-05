@@ -50,20 +50,14 @@ module Pandemic
       end
     end
     
-    def available?
-      @mutex.synchronize { @available.size > 0 }
-    end
-    
-    def available
-      @mutex.synchronize { @available.size }
-    end
-    
-    def size
-      @mutex.synchronize { @connections.size }
+    def connected?
+      @mutex.synchronize { @connections.size > 0 }
     end
     
     def disconnect
       @mutex.synchronize do
+        return if @disconnecting
+        @disconnecting = true
         @available.each do |conn|
           destroy_connection(conn)
           @connections.delete(conn)
@@ -76,6 +70,7 @@ module Pandemic
           end
           @available = []
         end
+        @disconnecting = false
       end
     end
     

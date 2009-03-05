@@ -1,6 +1,7 @@
 module Pandemic
   module ServerSide
     class Client
+      class DisconnectClient < Exception; end
       include Util
       def initialize(connection, server)
         super()
@@ -28,6 +29,8 @@ module Pandemic
                   @connection.write("#{response.size}\n#{response}")
                 end
               end
+            rescue DisconnectClient
+              @connection.close unless @connection.nil? || @connection.closed?
             ensure
               @server.client_closed(self)
             end
@@ -37,7 +40,7 @@ module Pandemic
       end
     
       def close
-        @connection.close unless @connection.nil? || @connection.closed?
+        @listener_thread.raise(DisconnectClient)
       end
     
       def handle_request(request)

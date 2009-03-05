@@ -25,7 +25,7 @@ module Pandemic
       end
       
       def connected?
-        @connection_pool.available?
+        @connection_pool.connected?
       end
     
       def client_request(request, body)

@@ -30,18 +30,16 @@ module Pandemic
     
       def client_request(request, body)
         debug("Sending client's request to peer")
-        Thread.new do
-          @connection_pool.with_connection do |connection|
-            # puts("Grabbed outgoing connection from pool (#{@connection_pool.available} / #{@connection_pool.size})")
-            if connection && !connection.closed?
-              debug("Sending client's request")
-              @pending_requests.synchronize do
-                @pending_requests[request.hash] = request
-              end
-              connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
-              debug("Finished sending client's request")
-            end # TODO: else? fail silently? reconnect?
-          end
+        # TODO: Consider adding back threads here if it will be faster that way in Ruby 1.9
+        @connection_pool.with_connection do |connection|
+          if connection && !connection.closed?
+            debug("Sending client's request")
+            @pending_requests.synchronize do
+              @pending_requests[request.hash] = request
+            end
+            connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
+            debug("Finished sending client's request")
+          end # TODO: else? fail silently? reconnect?
         end
       end
     

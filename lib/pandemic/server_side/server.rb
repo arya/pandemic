@@ -95,9 +95,7 @@ module Pandemic
         request.max_responses = map.size #@peers.values.select {|p| p.connected? }.size + 1
         map.each do |peer, body|
           if @peers[peer]
-            Thread.new(@peers[peer], request, body) do |peer, request, body| 
-              peer.client_request(request, body)
-            end
+            @peers[peer].client_request(request, body)
           end
         end
         Thread.new { request.add_response(self.process(map[signature])) } if map[signature]

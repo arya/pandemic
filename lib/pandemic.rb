@@ -31,6 +31,12 @@ require 'pandemic/client_side/pandemize'
 # - PING/PONG?
 
 
+def t(m, r = false)
+  $start_time = Time.now.to_f if $start_time.nil? || r
+  puts() if r
+  puts "%.5f #{m}" % (Time.now.to_f - $start_time)
+end
+
 $logger = Logger.new(STDOUT)
 $logger.level = Logger::INFO
 $logger.datetime_format = "%Y-%m-%d %H:%M:%S "

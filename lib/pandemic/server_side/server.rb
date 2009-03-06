@@ -91,15 +91,20 @@ module Pandemic
       end
     
       def handle_client_request(request)
+        t("server got handle_client_request")
         map = @handler.map(request, connection_statuses)
         request.max_responses = map.size #@peers.values.select {|p| p.connected? }.size + 1
         map.each do |peer, body|
           if @peers[peer]
+            t("calling send to peer")
             @peers[peer].client_request(request, body)
           end
         end
+        t("starting local processing thread")
         Thread.new { request.add_response(self.process(map[signature])) } if map[signature]
+        t("waiting for responses")
         request.wait_for_responses
+        t("done waiting")
         @handler.reduce(request)
       end
     

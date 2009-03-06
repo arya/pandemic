@@ -40,6 +40,8 @@ module Pandemic
         with_connection(key) do |socket|
           begin
             socket.write("#{body.size}\n#{body}")
+            socket.flush
+            IO.select([socket])
             response_size = socket.gets
             if response_size
               socket.read(response_size.strip.to_i)

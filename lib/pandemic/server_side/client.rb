@@ -16,6 +16,7 @@ module Pandemic
             begin
               while @server.running
                 request = @connection.gets
+                t("read from client", true)
                 
                 if request.nil? # TODO: better way to detect disconnect
                   @connection.close
@@ -27,6 +28,8 @@ module Pandemic
                   
                   response = handle_request(body)
                   @connection.write("#{response.size}\n#{response}")
+                  @connection.flush
+                  t("finished writing to client")
                 end
               end
             rescue DisconnectClient

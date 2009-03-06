@@ -30,7 +30,7 @@ require 'pandemic/client_side/pandemize'
 # - work on protocol specs
 # - PING/PONG?
 
-
+$to_reset = false
 def t(m, r = false)
   $start_time = Time.now.to_f if $start_time.nil? || r
   puts() if r

@@ -60,10 +60,9 @@ module Pandemic
             while @server.running
               debug("Listening for incoming requests")
               t("at incoming reader")
-              IO.select([connection])
               request = connection.gets
 
-              t("read from peer #{Time.now.to_f}")
+              t("read from peer #{Time.now.to_f}", $to_reset)
               if request.nil? # TODO: better way to detect close of connection?
                 debug("Incoming connection request is nil")
                 break
@@ -164,6 +163,7 @@ module Pandemic
             connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
             connection.flush
             t("finished writing #{Time.now.to_f}")
+            $to_reset = true
             debug( "Finished sending response (#{hash})")
           end
         end

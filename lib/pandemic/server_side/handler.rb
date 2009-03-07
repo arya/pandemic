@@ -6,15 +6,21 @@ module Pandemic
       end
         
       def map(request, servers)
-        raise "Implement"
+        map = {}
+        servers.each do |server, status|
+          if status != :disconnected
+            map[server] = request.body
+          end
+        end
+        map
       end
 
       def reduce(request)
-        raise "Implement"
+        request.responses.join("")
       end
 
       def process(body)
-        raise "Implement"
+        body
       end
     end
   end

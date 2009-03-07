@@ -39,12 +39,17 @@ module Pandemic
       def request(body, key = nil)
         with_connection(key) do |socket|
           begin
+            t("writing", true)
             socket.write("#{body.size}\n#{body}")
             socket.flush
-            IO.select([socket])
+            # IO.select([socket])
             response_size = socket.gets
+            t("got size")
             if response_size
-              socket.read(response_size.strip.to_i)
+              t("reading #{response_size}")
+              r = socket.read(response_size.strip.to_i)
+              t("done reading")
+              r
             else
               # nil response size
               raise LostConnectionToNode

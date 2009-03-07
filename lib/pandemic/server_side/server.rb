@@ -72,6 +72,8 @@ module Pandemic
       end
     
       def handle_connection(connection)
+        connection.setsockopt(Socket::SOL_TCP, Socket::TCP_NODELAY, 1)
+        
         identification = connection.gets.strip
         debug("Incoming connection (#{identification})")
         if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/

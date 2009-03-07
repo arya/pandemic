@@ -17,7 +17,7 @@ module Pandemic
       
       def connect
         return if connected?
-        10.times { @connection_pool.add_connection! }
+        1.times { @connection_pool.add_connection! }
       end
       
       def disconnect
@@ -97,7 +97,10 @@ module Pandemic
           rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED
             connection = nil
           end
-          connection.write("SERVER #{@server.signature}\n") if connection
+          if connection
+            connection.setsockopt(Socket::SOL_TCP, Socket::TCP_NODELAY, 1)
+            connection.write("SERVER #{@server.signature}\n")
+          end
           connection
         end
         

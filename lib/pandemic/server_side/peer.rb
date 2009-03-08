@@ -29,21 +29,16 @@ module Pandemic
       end
     
       def client_request(request, body)
-        t("client request")
         debug("Sending client's request to peer")
         # TODO: Consider adding back threads here if it will be faster that way in Ruby 1.9
         @connection_pool.with_connection do |connection|
-          t("thread started")
           if connection && !connection.closed?
             debug("Sending client's request")
-            t("starting req sync")
             @pending_requests.synchronize do
               @pending_requests[request.hash] = request
             end
-            t("writing")
             connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
             connection.flush
-            t("done writing #{Time.now.to_f}")
             debug("Finished sending client's request")
           end # TODO: else? fail silently? reconnect?
         end
@@ -59,15 +54,12 @@ module Pandemic
           begin
             while @server.running
               debug("Listening for incoming requests")
-              t("at incoming reader")
               request = connection.gets
 
-              t("read from peer #{Time.now.to_f}", $to_reset)
               if request.nil? # TODO: better way to detect close of connection?
                 debug("Incoming connection request is nil")
                 break
               else
-                t("choosing which handler")
                 debug("Received incoming (#{request.strip})")
                 handle_incoming_request(request, connection) if request =~ /^PROCESS/
                 handle_incoming_response(request, connection) if request =~ /^RESPONSE/
@@ -112,11 +104,9 @@ module Pandemic
           hash = $1
           size = $2.to_i
           debug("Incoming request: #{size} #{hash}")
-          t("about to read body")
           begin
             debug("Reading request body")
             request_body = connection.read(size)
-            t("finished reading body")
             debug("Finished reading request body")
           rescue EOFError, TruncatedDataError
             debug("Failed to read request body")
@@ -132,14 +122,11 @@ module Pandemic
       end
     
       def handle_incoming_response(response, connection)
-        t("chose response handler")
         if response.strip =~ /^RESPONSE ([A-Za-z0-9]+) ([0-9]+)$/
           hash = $1
           size = $2.to_i
           begin
-            t("about to read body")
             response_body = connection.read(size)
-            t("read body")
           rescue EOFError, TruncatedDataError
             # TODO: what to do here?
             return false
@@ -153,19 +140,14 @@ module Pandemic
     
     
       def process_request(hash, body)
-        t("about to start process request thread")
         Thread.new do
-          t("process request thread started")
           debug("Starting processing thread (#{hash})")
           response = @server.process(body)
-          t("finished handler process")
           debug("Processing finished (#{hash})")
           @connection_pool.with_connection do |connection|
-            t("about to write")
             debug( "Sending response (#{hash})")
             connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
             connection.flush
-            t("finished writing #{Time.now.to_f}")
             $to_reset = true
             debug( "Finished sending response (#{hash})")
           end
@@ -173,13 +155,9 @@ module Pandemic
       end
     
       def process_response(hash, body)
-        t("about to start thread to handle response")
         Thread.new do # because this part can be blocking and we don't want to wait for the
-          t("thread to add response started")
           original_request = @pending_requests.synchronize { @pending_requests.delete(hash) }
-          t("about to add response")
           original_request.add_response(body) if original_request
-          t("finished adding response")
         end
       end
       

@@ -55,10 +55,12 @@ module Pandemic
                 conn = @listener.accept
                 Thread.new(conn) { |c| handle_connection(c) }
               rescue Errno::ECONNABORTED, Errno::EINTR 
+                debug("Connection accepted aborted")
                 conn.close if conn && !conn.closed?
               end
             end
           rescue StopServer
+            info("Stopping server")
             @listener.close if @listener
             @peers.values.each { |p| p.disconnect }
             @clients.each {|c| c.close }
@@ -75,7 +77,7 @@ module Pandemic
         connection.setsockopt(Socket::SOL_TCP, Socket::TCP_NODELAY, 1)
         
         identification = connection.gets.strip
-        debug("Incoming connection (#{identification})")
+        info("Incoming connection (#{identification})")
         if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/
           debug("Recognized as peer")
           host, port = host_port($1)
@@ -88,20 +90,32 @@ module Pandemic
             @clients << Client.new(connection, self).listen
           end
         else
+          debug("Unrecognized connection. Closing.")
           connection.close # i dunno you
         end
       end
     
       def handle_client_request(request)
+        info("Handling client request")
         map = @handler.map(request, connection_statuses)
-        request.max_responses = map.size #@peers.values.select {|p| p.connected? }.size + 1
+        request.max_responses = map.size
+        debug("Sending client request to #{map.size} handlers (#{request.hash})")
+        
         map.each do |peer, body|
           if @peers[peer]
             @peers[peer].client_request(request, body)
           end
         end
-        Thread.new { request.add_response(self.process(map[signature])) } if map[signature]
+        
+        if map[signature]
+          debug("Processing #{request.hash}")
+          Thread.new { request.add_response(self.process(map[signature])) } 
+        end
+        
+        debug("Waiting for responses")
         request.wait_for_responses
+        
+        debug("Done waiting for responses, calling reduce")
         @handler.reduce(request)
       end
     
@@ -131,7 +145,11 @@ module Pandemic
       end
       
       def debug(msg)
-        logger.debug("Server #{@host}:#{@port}") {msg}
+        logger.debug("Server #{signature}") {msg}
+      end
+      
+      def info(msg)
+        logger.info("Server #{signature}") {msg}
       end
     end
   end

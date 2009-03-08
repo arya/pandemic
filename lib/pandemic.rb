@@ -25,13 +25,12 @@ require 'pandemic/client_side/pandemize'
 
 # TODO:
 # - IO timeouts/robustness
-# - add exception handling and logging to help debugging production issues
 # - implement stats tracking and stats client
 # - documentation
 # - PING/PONG?
 
 $logger = Logger.new(STDOUT)
-$logger.level = Logger::INFO
+$logger.level = Logger::DEBUG
 $logger.datetime_format = "%Y-%m-%d %H:%M:%S "
 
 def epidemic!

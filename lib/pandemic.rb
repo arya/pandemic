@@ -24,10 +24,10 @@ require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
 
 # TODO:
-# - look into dropping connections
-# - benchmark critical path
 # - IO timeouts/robustness
-# - work on protocol specs
+# - add exception handling and logging to help debugging production issues
+# - implement stats tracking and stats client
+# - documentation
 # - PING/PONG?
 
 $to_reset = false

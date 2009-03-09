@@ -59,7 +59,7 @@ module Pandemic
               request = connection.gets
               debug("Read incoming request from peer")
               
-              if request.nil? # TODO: better way to detect close of connection?
+              if request.nil?
                 debug("Incoming connection request is nil")
                 break
               else
@@ -98,7 +98,7 @@ module Pandemic
             warn("Unhandled exception in create connection block: #{e.inspect}")
           end
           if connection
-            connection.setsockopt(Socket::SOL_TCP, Socket::TCP_NODELAY, 1)
+            connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
             connection.write("SERVER #{@server.signature}\n")
           end
           connection

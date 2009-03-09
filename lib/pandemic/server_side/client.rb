@@ -19,7 +19,7 @@ module Pandemic
                 request = @connection.gets
                 info("Received incoming request")
                 
-                if request.nil? # TODO: better way to detect disconnect
+                if request.nil?
                   debug("Incoming request is nil")
                   @connection.close
                   @connection = nil

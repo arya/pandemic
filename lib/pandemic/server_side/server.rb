@@ -74,7 +74,7 @@ module Pandemic
       end
     
       def handle_connection(connection)
-        connection.setsockopt(Socket::SOL_TCP, Socket::TCP_NODELAY, 1)
+        connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
         
         identification = connection.gets.strip
         info("Incoming connection (#{identification})")

@@ -26,7 +26,6 @@ require 'pandemic/client_side/pandemize'
 
 # TODO:
 # - IO timeouts/robustness
-# - implement stats tracking and stats client
 # - documentation
 # - PING/PONG?
 

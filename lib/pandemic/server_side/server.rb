@@ -71,6 +71,8 @@ module Pandemic
             @listener.close if @listener
             @peers.values.each { |p| p.disconnect }
             @clients.each {|c| c.close }
+          rescue Exception => e
+            warn("Unhandled exception in server listening thread: #{e.inspect}")
           end
         end
       end
@@ -81,27 +83,31 @@ module Pandemic
       end
     
       def handle_connection(connection)
-        connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
+        begin
+          connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
         
-        identification = connection.gets.strip
-        info("Incoming connection (#{identification})")
-        if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/
-          debug("Recognized as peer")
-          host, port = host_port($1)
-          matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
-          debug("Found matching peer")
-          matching_peer.add_incoming_connection(connection) unless matching_peer.nil?
-        elsif identification =~ /^CLIENT$/
-          debug("Recognized as client")
-          @clients_mutex.synchronize do
-            @clients << Client.new(connection, self).listen
+          identification = connection.gets.strip
+          info("Incoming connection from #{connection.peeraddr.values_at(3,1).join(":")} (#{identification})")
+          if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/
+            debug("Recognized as peer")
+            host, port = host_port($1)
+            matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
+            debug("Found matching peer")
+            matching_peer.add_incoming_connection(connection) unless matching_peer.nil?
+          elsif identification =~ /^CLIENT$/
+            debug("Recognized as client")
+            @clients_mutex.synchronize do
+              @clients << Client.new(connection, self).listen
+            end
+          elsif identification =~ /^stats$/
+            debug("Stats request received")
+            print_stats(connection)
+          else
+            debug("Unrecognized connection. Closing.")
+            connection.close # i dunno you
           end
-        elsif identification =~ /^stats$/
-          debug("Stats request received")
-          print_stats(connection)
-        else
-          debug("Unrecognized connection. Closing.")
-          connection.close # i dunno you
+        rescue Exception => e
+          warn("Unhandled exception in handle connection method: #{e.inspect}")
         end
       end
     
@@ -119,7 +125,13 @@ module Pandemic
         
         if map[signature]
           debug("Processing #{request.hash}")
-          Thread.new { request.add_response(self.process(map[signature])) } 
+          Thread.new do
+            begin
+              request.add_response(self.process(map[signature]))
+            rescue Exception => e
+              warn("Unhandled exception in local processing: #{e.inspect}")
+            end
+          end
         end
         
         debug("Waiting for responses")
@@ -181,8 +193,11 @@ module Pandemic
         logger.info("Server #{signature}") {msg}
       end
       
+      def warn(msg)
+        logger.warn("Server #{signature}") {msg}
+      end
+      
       def collect_stats
-        begin
         results = {}
         results[:num_threads] = Thread.list.size
         results[:connected_clients], results[:total_clients] = \
@@ -209,10 +224,8 @@ module Pandemic
         
         results[:uptime] = Time.now - @running_since
         results
-      rescue Exception => e
-        Thread.main.raise(e)
       end
-      end
+      
     end
   end
 end

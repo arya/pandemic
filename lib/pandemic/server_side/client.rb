@@ -7,7 +7,6 @@ module Pandemic
       attr_accessor :received_requests, :responded_requests
       
       def initialize(connection, server)
-        super()
         @connection = connection
         @server = server
         @received_requests = 0
@@ -48,6 +47,8 @@ module Pandemic
             rescue DisconnectClient
               info("Closing client connection")
               @connection.close unless @connection.nil? || @connection.closed?
+            rescue Exception => e
+              warn("Unhandled exception in client listen thread: #{e.inspect}")
             ensure
               @server.client_closed(self)
             end
@@ -65,12 +66,20 @@ module Pandemic
       end
       
       private
+      def signature
+        @signature ||= @connection.peeraddr.values_at(3,1).join(":")
+      end
+      
       def debug(msg)
-        logger.debug("Client") {msg}
+        logger.debug("Client #{signature}") {msg}
       end
       
       def info(msg)
-        logger.info("Client") {msg}
+        logger.info("Client #{signature}") {msg}
+      end
+      
+      def warn(msg)
+        logger.warn("Client #{signature}") {msg}
       end
     end
   end

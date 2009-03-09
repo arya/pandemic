@@ -6,7 +6,6 @@ module Pandemic
       attr_reader :host, :port
       
       def initialize(addr, server)
-        super()
         @host, @port = host_port(addr)
         @server = server
         @pending_requests = with_mutex({})
@@ -52,8 +51,8 @@ module Pandemic
         connect # if we're not connected, we should be
         
         thread = Thread.new(conn) do |connection|
-          debug("Incoming connection thread started")
           begin
+            debug("Incoming connection thread started")
             while @server.running
               debug("Listening for incoming requests")
               request = connection.gets
@@ -159,27 +158,35 @@ module Pandemic
     
       def process_request(hash, body)
         Thread.new do
-          debug("Starting processing thread (#{hash})")
-          response = @server.process(body)
-          debug("Processing finished (#{hash})")
-          @connection_pool.with_connection do |connection|
-            debug( "Sending response (#{hash})")
-            connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
-            connection.flush
-            debug( "Finished sending response (#{hash})")
+          begin
+            debug("Starting processing thread (#{hash})")
+            response = @server.process(body)
+            debug("Processing finished (#{hash})")
+            @connection_pool.with_connection do |connection|
+              debug( "Sending response (#{hash})")
+              connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
+              connection.flush
+              debug( "Finished sending response (#{hash})")
+            end
+          rescue Exception => e
+            warn("Unhandled exception in process request thread: #{e.inspect}")
           end
         end
       end
     
       def process_response(hash, body)
-        Thread.new do # because this part can be blocking and we don't want to wait for the
-          debug("Finding original request (#{hash})")
-          original_request = @pending_requests.synchronize { @pending_requests.delete(hash) }
-          if original_request
-            debug("Found original request, adding response")
-            original_request.add_response(body) 
-          else
-            warn("Original response not found (#{hash})")
+        Thread.new do
+          begin
+            debug("Finding original request (#{hash})")
+            original_request = @pending_requests.synchronize { @pending_requests.delete(hash) }
+            if original_request
+              debug("Found original request, adding response")
+              original_request.add_response(body) 
+            else
+              warn("Original response not found (#{hash})")
+            end
+          rescue Exception => e
+            warn("Unhandled exception in process response thread: #{e.inspect}")
           end
         end
       end

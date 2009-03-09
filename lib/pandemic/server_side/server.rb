@@ -27,11 +27,13 @@ module Pandemic
       end
       attr_reader :host, :port, :running
       def initialize
-        @running = true
         @host, @port = host_port(Config.bind_to)
-        @peers = {}
+        
         @clients = []
+        @total_clients = 0
         @clients_mutex = Mutex.new
+        
+        @peers = {}
         @servers = Config.servers
         @servers.each do |peer|
           next if peer == Config.bind_to # not a peer, it's itself
@@ -45,9 +47,14 @@ module Pandemic
     
       def start
         raise "You must specify a handler" unless @handler
+        
         debug("Listening")
         @listener = TCPServer.new(@host, @port)
+        @running = true
+        @running_since = Time.now
+        
         @peers.values.each { |peer| peer.connect }
+        
         @listener_thread = Thread.new do
           begin
             while @running
@@ -89,6 +96,9 @@ module Pandemic
           @clients_mutex.synchronize do
             @clients << Client.new(connection, self).listen
           end
+        elsif identification =~ /^stats$/
+          debug("Stats request received")
+          print_stats(connection)
         else
           debug("Unrecognized connection. Closing.")
           connection.close # i dunno you
@@ -144,12 +154,64 @@ module Pandemic
         end
       end
       
+      private
+      def print_stats(connection)
+        begin
+          stats = collect_stats
+          str = []
+          str << "Uptime: #{stats[:uptime]}"
+          str << "Number of Threads: #{stats[:num_threads]}"
+          str << "Connected Clients: #{stats[:connected_clients]}"
+          str << "Clients Ever: #{stats[:total_clients]}"
+          str << "Connected Peers: #{stats[:connected_peers]}"
+          str << "Disconnected Peers: #{stats[:disconnected_peers]}"
+          str << "Total Requests: #{stats[:num_requests]}"
+          str << "Pending Requests: #{stats[:pending_requests]}"
+          str << "Late Responses: #{stats[:late_responses]}"
+          connection.puts(str.join("\n"))
+        end while (s = connection.gets) && (s.strip == "stats" || s.strip == "")
+        connection.close if connection && !connection.closed?
+      end
+      
       def debug(msg)
         logger.debug("Server #{signature}") {msg}
       end
       
       def info(msg)
         logger.info("Server #{signature}") {msg}
+      end
+      
+      def collect_stats
+        begin
+        results = {}
+        results[:num_threads] = Thread.list.size
+        results[:connected_clients], results[:total_clients] = \
+            @clients_mutex.synchronize { [@clients.size, @total_clients] }
+            
+        results[:connected_peers], results[:disconnected_peers] = \
+            connection_statuses.inject([0,0]) do |counts, (server,status)|              
+              if status == :connected
+                counts[0] += 1
+              elsif status == :disconnected
+                counts[1] += 1
+              end
+              counts
+            end
+        
+        results[:num_requests] = Request.total_request_count
+        results[:late_responses] = Request.total_late_responses
+
+        results[:pending_requests] = @clients_mutex.synchronize do
+          @clients.inject(0) do |pending, client|
+            pending + (client.received_requests - client.responded_requests)
+          end
+        end
+        
+        results[:uptime] = Time.now - @running_since
+        results
+      rescue Exception => e
+        Thread.main.raise(e)
+      end
       end
     end
   end

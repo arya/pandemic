@@ -3,10 +3,15 @@ module Pandemic
     class Client
       class DisconnectClient < Exception; end
       include Util
+      
+      attr_accessor :received_requests, :responded_requests
+      
       def initialize(connection, server)
         super()
         @connection = connection
         @server = server
+        @received_requests = 0
+        @responded_requests = 0
       end
     
       def listen
@@ -18,6 +23,7 @@ module Pandemic
                 debug("Waiting for incoming request")
                 request = @connection.gets
                 info("Received incoming request")
+                @received_requests += 1
                 
                 if request.nil?
                   debug("Incoming request is nil")
@@ -35,6 +41,7 @@ module Pandemic
                   debug("Writing response to client")
                   @connection.write("#{response.size}\n#{response}")
                   @connection.flush
+                  @responded_requests += 1
                   debug("Finished writing response to client")
                 end
               end

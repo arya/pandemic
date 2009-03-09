@@ -1,34 +1,20 @@
 module Pandemic
   module ServerSide
-    class Request
-      class RequestCounter
-        MAX = (2 ** 30) - 1
-        def initialize
-          @mutex = Mutex.new
-          @counter = 0
-          @resets = 0
-        end
-
-        def real_total
-          @mutex.synchronize { (@resets * MAX) + @counter }
-        end
-
-        def inc
-          @mutex.synchronize do
-            if @counter >= MAX
-              @counter = 0  # to avoid Bignum, it's about 4x slower
-              @resets += 1
-            end
-            @counter += 1
-          end
-        end
-      end
-          
-    
-      @@request_count = RequestCounter.new
+    class Request    
+      include Util
+      
+      @@request_count = MutexCounter.new
+      @@late_responses = MutexCounter.new
       attr_reader :body
       attr_accessor :max_responses
-      include Util
+      
+      def self.total_request_count
+        @@request_count.real_total
+      end
+      
+      def self.total_late_responses
+        @@late_responses.real_total
+      end
       
       def initialize(body)
         @request_number = @@request_count.inc
@@ -40,7 +26,10 @@ module Pandemic
     
       def add_response(response)
         @responses_mutex.synchronize do
-          return if @responses.frozen? # too late
+          if @responses.frozen? # too late
+            @@late_responses.inc
+            return  
+          end
           debug("Adding response")
           @responses << response
           if @max_responses && @responses.size >= @max_responses

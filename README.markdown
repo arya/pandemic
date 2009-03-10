@@ -3,7 +3,6 @@ Pandemic is a map-reduce framework. You give it the map, process, and reduce met
 
 ## Examples
 **Server**  
-
     
     require 'rubygems'
     require 'pandemic'
@@ -19,12 +18,12 @@ Pandemic is a map-reduce framework. You give it the map, process, and reduce met
     pandemic_server.start.join
 
 In this example, the handler doesn't define the map or reduce methods, and the defaults are used. The default for each is as follows:
-* map: Send the full request body to every connected node
-* process: Return the body (do nothing)
-* reduce: Concatenate all the responses
+
+  * map: Send the full request body to every connected node
+  * process: Return the body (do nothing)
+  * reduce: Concatenate all the responses
 
 **Client**  
-
 
     require 'rubygems'
     require 'pandemic'
@@ -39,7 +38,6 @@ In this example, the handler doesn't define the map or reduce methods, and the d
 
 **Config**  
 Both the server and client have config files:
-
 
     # pandemic_server.yml
     servers:

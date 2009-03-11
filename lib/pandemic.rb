@@ -29,11 +29,12 @@ require 'pandemic/client_side/pandemize'
 # - documentation
 # - PING/PONG?
 
-$logger = Logger.new(STDOUT)
-$logger.level = Logger::DEBUG
-$logger.datetime_format = "%Y-%m-%d %H:%M:%S "
-
 def epidemic!
+  if $pandemic_logger.nil?
+    $pandemic_logger = Logger.new("pandemic.log")
+    $pandemic_logger.level = Logger::DEBUG
+    $pandemic_logger.datetime_format = "%Y-%m-%d %H:%M:%S "
+  end
   Pandemic::ServerSide::Server.boot
 end
 

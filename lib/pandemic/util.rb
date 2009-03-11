@@ -5,7 +5,7 @@ module Pandemic
     end
     
     def logger
-      $logger
+      $pandemic_logger
     end
     
     def bm(title, &block)

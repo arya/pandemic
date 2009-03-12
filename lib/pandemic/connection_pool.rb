@@ -4,34 +4,39 @@ module Pandemic
     class CreateConnectionUndefinedException < Exception; end
     include Util
     def initialize(options = {})
+      @connected = false
       @mutex = Monitor.new
       @queue = @mutex.new_cond
       @available = []
       @connections = []
       @max_connections = options[:max_connections] || 10
+      @min_connections = options[:min_connections] || 1
       @timeout = options[:timeout] || 3
     end
     
     def add_connection!
-      # bang because we're ignorings the max connections
-      conn = create_connection
-      if conn
-        @mutex.synchronize do
-          @connections << conn
-          @available << conn
-        end
+      # bang because we're ignoring the max connections
+      @mutex.synchronize do
+        conn = create_connection
+        @available << conn if conn && !conn.closed?
       end
     end
     
     def create_connection(&block)
       if block.nil?
         if @create_connection
-          @create_connection.call
+          conn = @create_connection.call
+          if conn && !conn.closed?
+            @connections << conn
+            @connected = true 
+            conn
+          end
         else
           raise CreateConnectionUndefinedException.new("You must specify a block to create connections")
         end
       else
         @create_connection = block
+        connect
       end
     end
     
@@ -45,28 +50,34 @@ module Pandemic
             connection.close
           end
         end
+        @connections.delete(connection)
+        # this is within the mutex of the caller
+        @connected = false if @connections.empty?
       else
         @destroy_connection = block
       end
     end
     
     def connected?
-      @mutex.synchronize { @connections.size > 0 }
+      @connected
+    end
+    
+    def connect
+      @min_connections.times { add_connection! } if !connected?
     end
     
     def disconnect
       @mutex.synchronize do
         return if @disconnecting
         @disconnecting = true
+        @connected = false # we don't want anyone thinking they can use this connection
         @available.each do |conn|
           destroy_connection(conn)
-          @connections.delete(conn)
         end
         @available = []
         while @connections.size > 0 && @queue.wait
           @available.each do |conn|
             destroy_connection(conn)
-            @connections.delete(conn)
           end
           @available = []
         end
@@ -94,7 +105,6 @@ module Pandemic
             connection = @available.pop
             break
           elsif @connections.size < @max_connections && (connection = create_connection)
-            @connections << connection
             break
           elsif @queue.wait(@timeout)
             next

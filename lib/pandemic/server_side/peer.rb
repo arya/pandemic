@@ -15,9 +15,8 @@ module Pandemic
       end
       
       def connect
-        return if connected?
         debug("Forced connection to peer")
-        1.times { @connection_pool.add_connection! }
+        @connection_pool.connect
       end
       
       def disconnect
@@ -49,6 +48,7 @@ module Pandemic
         debug("Adding incoming connection")
 
         connect # if we're not connected, we should be
+
         
         thread = Thread.new(conn) do |connection|
           begin
@@ -89,10 +89,18 @@ module Pandemic
         
         @connection_pool.create_connection do
           connection = nil
+          retries = 0
           begin
             connection = TCPSocket.new(@host, @port)
-          rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED
+          rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED => e
             connection = nil
+            debug("Connection timeout or refused: #{e.inspect}")
+            if retries == 0
+              debug("Retrying connection")
+              retries += 1
+              sleep 0.01
+              retry
+            end
           rescue Exception => e
             warn("Unhandled exception in create connection block: #{e.inspect}")
           end

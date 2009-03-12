@@ -148,7 +148,7 @@ module Pandemic
       def signature
         "#{@host}:#{@port}"
       end
-      
+            
       def connection_statuses
         @servers.inject({}) do |statuses, server|
           if server == signature

@@ -25,6 +25,9 @@ require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
 
 # TODO:
+# - tests
+# - connection pool throttling
+# - see if caching the connection statuses improves times
 # - IO timeouts/robustness
 # - documentation
 # - PING/PONG?
@@ -32,7 +35,7 @@ require 'pandemic/client_side/pandemize'
 def epidemic!
   if $pandemic_logger.nil?
     $pandemic_logger = Logger.new("pandemic.log")
-    $pandemic_logger.level = Logger::DEBUG
+    $pandemic_logger.level = Logger::INFO
     $pandemic_logger.datetime_format = "%Y-%m-%d %H:%M:%S "
   end
   Pandemic::ServerSide::Server.boot

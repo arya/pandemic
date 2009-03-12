@@ -51,6 +51,7 @@ module Pandemic
           end
         end
         @connections.delete(connection)
+        @available.delete(connection)
         # this is within the mutex of the caller
         @connected = false if @connections.empty?
       else
@@ -58,12 +59,35 @@ module Pandemic
       end
     end
     
+    def status_check(connection = nil, &block)
+      if block.nil?
+        if @status_check
+          @status_check.call(connection)
+        else
+          connection && !connection.closed?
+        end
+      else
+        @status_check = block
+      end
+    end    
+    
     def connected?
       @connected
     end
     
     def connect
-      @min_connections.times { add_connection! } if !connected?
+      if !connected?
+        @min_connections.times { add_connection! }
+        grim_reaper
+      end
+    end
+    
+    def available_count
+      @available.size
+    end
+    
+    def connections_count
+      @connections.size
     end
     
     def disconnect
@@ -71,15 +95,16 @@ module Pandemic
         return if @disconnecting
         @disconnecting = true
         @connected = false # we don't want anyone thinking they can use this connection
-        @available.each do |conn|
+        @grim_reaper.kill if @grim_reaper && @grim_reaper.alive?
+        
+        @available.dup.each do |conn|
           destroy_connection(conn)
         end
-        @available = []
+        
         while @connections.size > 0 && @queue.wait
-          @available.each do |conn|
+          @available.dup.each do |conn|
             destroy_connection(conn)
           end
-          @available = []
         end
         @disconnecting = false
       end
@@ -120,6 +145,40 @@ module Pandemic
       @mutex.synchronize do
         @available.unshift(connection)
         @queue.signal
+      end
+    end
+    
+    def grim_reaper
+      @grim_reaper.kill if @grim_reaper && @grim_reaper.alive?
+      @grim_reaper = Thread.new do
+        usage_history = []
+        loop do
+          if connected?
+            @mutex.synchronize do
+              dead = []
+
+              @connections.each do |conn|
+                dead << conn if !status_check(conn)
+              end
+
+              dead.each do
+                @connections.delete(dead)
+                @available.delete(dead)
+              end
+
+              usage_history.push(@available.size)
+              if usage_history.size > 10
+                usage_history.shift
+                to_kill = usage_history.min - @min_connections
+                [to_kill, 0].max.times do
+                  destroy_connection(@connections.last)
+                end
+                usage_history = []
+              end
+            end
+            sleep 30
+          end
+        end
       end
     end
     

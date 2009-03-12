@@ -30,6 +30,7 @@ module Pandemic
     
       def client_request(request, body)
         debug("Sending client's request to peer")
+        debug("Connection pool has #{@connection_pool.available_count} of #{@connection_pool.connections_count} connections available")
         # TODO: Consider adding back threads here if it will be faster that way in Ruby 1.9
         @connection_pool.with_connection do |connection|
           if connection && !connection.closed?
@@ -110,7 +111,6 @@ module Pandemic
           end
           connection
         end
-        
       end
     
       def handle_incoming_request(request, connection)

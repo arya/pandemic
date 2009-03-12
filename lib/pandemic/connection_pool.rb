@@ -161,23 +161,30 @@ module Pandemic
                 dead << conn if !status_check(conn)
               end
 
-              dead.each do
-                @connections.delete(dead)
-                @available.delete(dead)
+              dead.each { |c| destroy_connection(c) }
+              
+              # restore to minimum number of connections if it's too low
+              [@min_connections - @connections.size, 0].max.times do
+                add_connection!
               end
 
               usage_history.push(@available.size)
-              if usage_history.size > 10
-                usage_history.shift
-                to_kill = usage_history.min - @min_connections
+              if usage_history.size >= 10
+                # kill the minimum number of available connections over the last 10 checks
+                # or the total connections minux the min connections, whichever is lower.
+                # this ensures that you never go below min connections
+                to_kill = [usage_history.min, @connections.size - @min_connections].min
                 [to_kill, 0].max.times do
                   destroy_connection(@connections.last)
                 end
                 usage_history = []
               end
-            end
+
+            end # end mutex
             sleep 30
-          end
+          else
+            break
+          end # end if connected
         end
       end
     end

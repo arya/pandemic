@@ -26,8 +26,6 @@ require 'pandemic/client_side/pandemize'
 
 # TODO:
 # - tests
-# - connection pool throttling
-# - see if caching the connection statuses improves times
 # - IO timeouts/robustness
 # - documentation
 # - PING/PONG?

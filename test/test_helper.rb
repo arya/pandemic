@@ -7,3 +7,18 @@ require 'test/unit'
 require 'pandemic'
 require 'rubygems'
 require 'shoulda'
+require 'mocha'
+
+
+blackhole = StringIO.new
+$pandemic_logger = Logger.new(blackhole)
+
+module TestHelper
+  class TestException < Exception; end
+  def wait_for_threads
+    Thread.list.each do |thread|
+      next if thread == Thread.current
+      thread.join
+    end
+  end
+end

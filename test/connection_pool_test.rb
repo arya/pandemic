@@ -18,13 +18,31 @@ class ConnectionPoolTest < Test::Unit::TestCase
     setup do
       @connection_pool = Pandemic::ConnectionPool.new
       @connection_creator = mock()
+      @connection_destroyer = mock()
     end
     
     should "call create connection after its defined" do
-      @connection_creator.expects(:create).at_least(0)
+      @connection_creator.expects(:create).once
       @connection_pool.create_connection do
         @connection_creator.create
       end
+    end
+    
+    should "call destroyer on disconnect" do
+      @connection_creator.expects(:create).once
+      @connection_destroyer.expects(:destroy).once
+      @connection_pool.create_connection do
+        @connection_creator.create
+        conn = mock()
+        conn.expects(:closed?).returns(false).at_least(0)
+        conn
+      end
+      
+      @connection_pool.destroy_connection do
+        @connection_destroyer.destroy
+      end
+      
+      @connection_pool.disconnect
     end
     
   end
@@ -111,6 +129,5 @@ class ConnectionPoolTest < Test::Unit::TestCase
         @connection_creator.create
       end
     end
-    
   end
 end

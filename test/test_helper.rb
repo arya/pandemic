@@ -15,9 +15,9 @@ $pandemic_logger = Logger.new(blackhole)
 
 module TestHelper
   class TestException < Exception; end
-  def wait_for_threads
+  def wait_for_threads(ignore = [Thread.current])
     Thread.list.each do |thread|
-      next if thread == Thread.current
+      next if ignore.include?(thread)
       thread.join
     end
   end

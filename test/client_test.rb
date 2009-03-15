@@ -6,7 +6,7 @@ class ClientTest < Test::Unit::TestCase
   context "with a client object" do
     setup do
       @server = mock()
-      @server.expects(:running).returns(true)
+      @server.expects(:running).returns(true).then.returns(false)
       @connection = mock()
       @connection.expects(:peeraddr).returns(['','','',''])
       @connection.expects(:nil?).returns(false).at_least_once

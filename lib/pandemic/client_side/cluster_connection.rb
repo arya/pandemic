@@ -4,6 +4,7 @@ module Pandemic
       class NotEnoughConnectionsTimeout < Exception; end
       class NoNodesAvailable < Exception; end
       class LostConnectionToNode < Exception; end
+      class NodeTimedOut < Exception; end
       
       include Util
       def initialize
@@ -41,7 +42,8 @@ module Pandemic
           begin
             socket.write("#{body.size}\n#{body}")
             socket.flush
-            # IO.select([socket])
+            is_ready = IO.select([socket], nil, nil, 1)
+            raise NodeTimedOut if is_ready.nil?
             response_size = socket.gets
             if response_size
               socket.read(response_size.strip.to_i)

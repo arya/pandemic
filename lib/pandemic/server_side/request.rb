@@ -34,20 +34,35 @@ module Pandemic
           @responses << response
           if @max_responses && @responses.size >= @max_responses
             debug("Hit max responses, waking up waiting thread")
-            @waiting_thread.wakeup if @waiting_thread && @waiting_thread.status == "sleep"
+            wakeup_waiting_thread
             @complete = true
           end
         end
+      end
+      
+      def wakeup_waiting_thread
+        @waiting_thread.wakeup if @waiting_thread && @waiting_thread.status == "sleep"
       end
     
       def responses
         @responses # its frozen so we don't have to worry about mutex
       end
+      
+      def cancel!
+        # consider telling peers that they should stop, but for now this is fine.
+        @responses_mutex.synchronize do
+          wakeup_waiting_thread
+        end
+      end
     
       def wait_for_responses
         return if @complete
         @waiting_thread = Thread.current
-        sleep Config.response_timeout
+        if Config.response_timeout <= 0
+          Thread.stop
+        else
+          sleep Config.response_timeout
+        end
         # there is a race case where if the sleep finishes, 
         # and response comes in and has the mutex, and then array is frozen
         # it would be ideal to use monitor wait/signal here but the monitor implementation is currently flawed

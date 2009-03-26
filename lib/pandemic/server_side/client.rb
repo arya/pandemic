@@ -11,6 +11,7 @@ module Pandemic
         @server = server
         @received_requests = 0
         @responded_requests = 0
+        @current_request = nil
       end
     
       def listen
@@ -38,6 +39,8 @@ module Pandemic
                   response = handle_request(body)
                   
                   debug("Writing response to client")
+                  
+                  # the connection could be closed, we'll let it be rescued if it is.
                   @connection.write("#{response.size}\n#{response}")
                   @connection.flush
                   @responded_requests += 1
@@ -46,10 +49,14 @@ module Pandemic
               end
             rescue DisconnectClient
               info("Closing client connection")
-              @connection.close unless @connection.nil? || @connection.closed?
+              close_connection
+            rescue Errno::EPIPE
+              info("Connection to client lost")
+              close_connection
             rescue Exception => e
               warn("Unhandled exception in client listen thread: #{e.inspect}")
             ensure
+              @current_request.cancel! if @current_request
               @server.client_closed(self)
             end
           end
@@ -60,12 +67,21 @@ module Pandemic
       def close
         @listener_thread.raise(DisconnectClient)
       end
+      
+
     
       def handle_request(request)
-        @server.handle_client_request(Request.new(request))
+        @current_request = Request.new(request)
+        response = @server.handle_client_request(@current_request)
+        @current_request = nil
+        return response
       end
       
       private
+      def close_connection
+        @connection.close unless @connection.nil? || @connection.closed?
+      end
+      
       def signature
         @signature ||= @connection.peeraddr.values_at(3,1).join(":")
       end

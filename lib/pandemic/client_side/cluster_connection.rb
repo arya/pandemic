@@ -17,6 +17,9 @@ module Pandemic
         @connection_proxies = {}
         @queue = @mutex.new_cond # TODO: there should be a queue for each group
         
+        @response_timeout = Config.response_timeout
+        @response_timeout = nil if @response_timeout <= 0
+        
         Config.servers.each_with_index do |server_addr, key|
           @connection_proxies[key] = ConnectionProxy.new(key, self)
           host, port = host_port(server_addr)
@@ -42,7 +45,7 @@ module Pandemic
           begin
             socket.write("#{body.size}\n#{body}")
             socket.flush
-            is_ready = IO.select([socket], nil, nil, 1)
+            is_ready = IO.select([socket], nil, nil, @response_timeout)
             raise NodeTimedOut if is_ready.nil?
             response_size = socket.gets
             if response_size

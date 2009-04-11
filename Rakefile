@@ -2,12 +2,12 @@ require 'rubygems'
 require 'rake'
 require 'echoe'
 
-Echoe.new('pandemic', '0.2.2') do |p|
+Echoe.new('pandemic', '0.2.3') do |p|
   p.description    = "Distribute MapReduce to any of the workers and it will spread, like a pandemic."
   p.url            = "https://github.com/arya/pandemic/"
   p.author         = "Arya Asemanfar"
   p.email          = "aryaasemanfar@gmail.com"
-  p.ignore_pattern = ["tmp/*", "script/*", 'test/*', 'Manifest']
+  p.ignore_pattern = ["tmp/*", "script/*", 'test/*']
   p.development_dependencies = ["shoulda", "mocha"]
 end
 

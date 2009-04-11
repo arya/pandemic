@@ -7,7 +7,7 @@ Echoe.new('pandemic', '0.2.2') do |p|
   p.url            = "https://github.com/arya/pandemic/"
   p.author         = "Arya Asemanfar"
   p.email          = "aryaasemanfar@gmail.com"
-  p.ignore_pattern = ["tmp/*", "script/*", 'test/*']
+  p.ignore_pattern = ["tmp/*", "script/*", 'test/*', 'Manifest']
   p.development_dependencies = ["shoulda", "mocha"]
 end
 

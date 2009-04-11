@@ -84,7 +84,7 @@ module Pandemic
     
       def handle_connection(connection)
         begin
-          connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
+          connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if TCP_NO_DELAY_AVAILABLE
         
           identification = connection.gets.strip
           info("Incoming connection from #{connection.peeraddr.values_at(3,1).join(":")} (#{identification})")

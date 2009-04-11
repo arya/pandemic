@@ -106,7 +106,7 @@ module Pandemic
             warn("Unhandled exception in create connection block: #{e.inspect}")
           end
           if connection
-            connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
+            connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if TCP_NO_DELAY_AVAILABLE
             connection.write("SERVER #{@server.signature}\n")
           end
           connection

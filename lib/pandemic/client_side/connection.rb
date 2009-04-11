@@ -16,7 +16,7 @@ module Pandemic
         @socket = begin
           connection = TCPSocket.new(@host, @port)
           if connection && !connection.closed?
-            connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if Socket.constants.include?('TCP_NODELAY')
+            connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if TCP_NO_DELAY_AVAILABLE
             connection.write("CLIENT\n")
             connection
           else

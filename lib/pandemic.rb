@@ -30,6 +30,9 @@ require 'pandemic/client_side/pandemize'
 # - documentation
 # - PING/PONG?
 
+TCP_NO_DELAY_AVAILABLE =
+    RUBY_VERSION < '1.9' ? Socket.constants.include?('TCP_NODELAY') : Socket.constants.include?(:TCP_NODELAY)
+
 def epidemic!
   if $pandemic_logger.nil?
     $pandemic_logger = Logger.new("pandemic.log")

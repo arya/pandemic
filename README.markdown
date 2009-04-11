@@ -1,5 +1,9 @@
 # Pandemic
-Pandemic is a map-reduce framework. You give it the map, process, and reduce methods and it handles the rest. It works both in Ruby 1.8 and Ruby 1.9, and performs better on 1.9.
+Pandemic is a map-reduce framework. You give it the map, process, and reduce methods and it handles the rest. It's designed to serve requests in real-time, but can also be used for offline tasks.
+
+It's different from the typical map-reduce framework in that it doesn't have a master-worker structure. Every node can map, process, and reduce. It also doesn't have the concept of jobs, everything is a request.
+
+The framework is designed to be as flexible as possible, there is no rigid request format, or API, you can specify it however you want. You can send it http-style headers and a body, you can send it JSON, or you can even just send it a single line and have it do whatever you want. The only requirement is that you write your handler to appropriately act on the request and return the response.
 
 ## Usage
 ### Server
@@ -53,7 +57,9 @@ Each value for the server list is the _host:port_ that a node can bind to. The s
       - host2:4000
     max_connections_per_server: 10
     min_connections_per_server: 1
-The min/max connections refers to how many connections to each node. If you're using Rails, then just use 1 for both min/max since it's single threaded.
+    response_timeout: 1
+    
+The min/max connections refers to how many connections to each node. If you're using the client in Rails, then just use 1 for both min/max since it's single threaded.
 
 ### More Config
 There are three ways to start a server:
@@ -66,7 +72,7 @@ The first refers to the index in the servers array:
 
     servers:
       - host1:4000 # started with ruby server.rb -i 0
-      - host2:4000 # started with ruby server.rb -i 0
+      - host2:4000 # started with ruby server.rb -i 1
       
 The second refers to the index in the servers _hash_. This can be particularly useful if you use the hostname as the key.
 
@@ -97,3 +103,4 @@ And you can access these additional options using _config.get(keys)_ in your han
         @dbh = Mysql.real_connect(*config.get('host', 'username', 'password', 'database')) 
       end
     end
+    

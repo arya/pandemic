@@ -104,3 +104,11 @@ And you can access these additional options using _config.get(keys)_ in your han
       end
     end
     
+## Examples
+To run the example in the _examples_ folder, fire up two to three terminal windows. And run one of these in each:
+
+  * cd examples/server; ruby word\_count_server.rb -i 0
+  * cd examples/server; ruby word\_count_server.rb -i 1
+  * cd examples/client; ruby client.rb
+  
+The servers are going to try to bind to localhost:4000 and localhost:4001 so make sure those are available.

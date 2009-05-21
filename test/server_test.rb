@@ -4,19 +4,22 @@ class ServerTest < Test::Unit::TestCase
   include TestHelper
   
   should "initialize peers" do
-    Pandemic::ServerSide::Config.expects(:bind_to).at_least_once.returns("localhost:4000")
-    Pandemic::ServerSide::Config.expects(:servers).returns(["localhost:4000", "localhost:4001"])
+    config = Pandemic::ServerSide::Config.load
+    config.expects(:bind_to).at_least_once.returns("localhost:4000")
+    config.expects(:servers).returns(["localhost:4000", "localhost:4001"])
     Pandemic::ServerSide::Peer.expects(:new).with("localhost:4001", is_a(Pandemic::ServerSide::Server))
-    @server = Pandemic::ServerSide::Server.new    
+    @server = Pandemic::ServerSide::Server.new(config)    
   end
   
   context "with a server" do
     setup do
-      Pandemic::ServerSide::Config.expects(:bind_to).at_least_once.returns("localhost:4000")
-      Pandemic::ServerSide::Config.expects(:servers).returns(["localhost:4000", "localhost:4001"])
+      config = Pandemic::ServerSide::Config.load
+      config.expects(:bind_to).at_least_once.returns("localhost:4000")
+      config.expects(:servers).returns(["localhost:4000", "localhost:4001"])
       @peer = mock()
       Pandemic::ServerSide::Peer.expects(:new).with("localhost:4001", is_a(Pandemic::ServerSide::Server)).returns(@peer)
-      @server = Pandemic::ServerSide::Server.new
+    
+      @server = Pandemic::ServerSide::Server.new(config)
     end
     
     should "start a TCPServer, and connect to peers" do

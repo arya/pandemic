@@ -4,10 +4,10 @@ module Pandemic
       include Util
       class StopServer < Exception; end
       class << self
-        def boot
-          Config.load
+        def boot(config = nil)
+          config = config.nil? ? Config.load : config
           # Process.setrlimit(Process::RLIMIT_NOFILE, 4096) # arbitrary high number of max file descriptors.
-          server = self.new
+          server = self.new(config)
           set_signal_traps(server)
           server
         end
@@ -26,17 +26,18 @@ module Pandemic
         end
       end
       attr_reader :host, :port, :running
-      def initialize
-        @host, @port = host_port(Config.bind_to)
-        
+      def initialize(config)
+        @config = config
+        @host, @port = host_port(@config.bind_to)
         @clients = []
         @total_clients = 0
         @clients_mutex = Mutex.new
+        @num_processed = MutexCounter.new
         
         @peers = {}
-        @servers = Config.servers
+        @servers = @config.servers
         @servers.each do |peer|
-          next if peer == Config.bind_to # not a peer, it's itself
+          next if peer == @config.bind_to # not a peer, it's itself
           @peers[peer] = Peer.new(peer, self)
         end
       end
@@ -142,7 +143,9 @@ module Pandemic
       end
     
       def process(body)
-        @handler.process(body)
+        response = @handler.process(body)
+        @num_processed.inc
+        response
       end
     
       def signature
@@ -180,6 +183,7 @@ module Pandemic
           str << "Total Requests: #{stats[:num_requests]}"
           str << "Pending Requests: #{stats[:pending_requests]}"
           str << "Late Responses: #{stats[:late_responses]}"
+          str << "Total Processed: #{stats[:total_processed]}"
           connection.puts(str.join("\n"))
         end while (s = connection.gets) && (s.strip == "stats" || s.strip == "")
         connection.close if connection && !connection.closed?
@@ -212,10 +216,9 @@ module Pandemic
               end
               counts
             end
-        
+        results[:total_processed] = @num_processed.to_i
         results[:num_requests] = Request.total_request_count
         results[:late_responses] = Request.total_late_responses
-
         results[:pending_requests] = @clients_mutex.synchronize do
           @clients.inject(0) do |pending, client|
             pending + (client.received_requests - client.responded_requests)

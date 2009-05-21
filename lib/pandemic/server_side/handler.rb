@@ -22,6 +22,10 @@ module Pandemic
       def process(body)
         body
       end
+      
+      def filter_alive(servers)
+        servers.keys.select{|k| servers[k] != :disconnected}
+      end        
     end
   end
 end

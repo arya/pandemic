@@ -11,6 +11,7 @@ module Pandemic
     def real_total
       @mutex.synchronize { (@resets * @max) + @counter }
     end
+    alias_method :to_i, :real_total
     
     def value
       @mutex.synchronize { @counter }

@@ -32,7 +32,8 @@ module Pandemic
         @clients = []
         @total_clients = 0
         @clients_mutex = Mutex.new
-        @num_processed = MutexCounter.new
+        @num_jobs_processed = MutexCounter.new
+        @num_jobs_entered = MutexCounter.new
         
         @peers = {}
         @servers = @config.servers
@@ -143,8 +144,9 @@ module Pandemic
       end
     
       def process(body)
+        @num_jobs_entered.inc
         response = @handler.process(body)
-        @num_processed.inc
+        @num_jobs_processed.inc
         response
       end
     
@@ -183,7 +185,8 @@ module Pandemic
           str << "Total Requests: #{stats[:num_requests]}"
           str << "Pending Requests: #{stats[:pending_requests]}"
           str << "Late Responses: #{stats[:late_responses]}"
-          str << "Total Processed: #{stats[:total_processed]}"
+          str << "Total Jobs Processed: #{stats[:total_jobs_processed]}"
+          str << "Pending Jobs: #{stats[:jobs_pending]}"
           connection.puts(str.join("\n"))
         end while (s = connection.gets) && (s.strip == "stats" || s.strip == "")
         connection.close if connection && !connection.closed?
@@ -216,7 +219,8 @@ module Pandemic
               end
               counts
             end
-        results[:total_processed] = @num_processed.to_i
+        results[:total_jobs_processed] = @num_jobs_processed.to_i
+        results[:jobs_pending] = @num_jobs_entered.to_i - @num_jobs_processed.to_i
         results[:num_requests] = Request.total_request_count
         results[:late_responses] = Request.total_late_responses
         results[:pending_requests] = @clients_mutex.synchronize do

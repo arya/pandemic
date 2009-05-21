@@ -16,6 +16,24 @@ class MutexCounterTest < Test::Unit::TestCase
       assert_equal 1, @counter.value
     end
     
+    should "decrement to 0 after one call to inc" do
+      assert_equal 0, @counter.value
+      assert_equal 1, @counter.inc
+      assert_equal 1, @counter.value
+      assert_equal 0, @counter.decr
+      assert_equal 0, @counter.value
+    end
+    
+    should "only decrement to 0" do
+      assert_equal 0, @counter.value
+      assert_equal 1, @counter.inc
+      assert_equal 1, @counter.value
+      assert_equal 0, @counter.decr
+      assert_equal 0, @counter.value
+      assert_equal 0, @counter.decr
+      assert_equal 0, @counter.value
+    end
+    
     should "be thread safe" do
       # Not exactly a perfect test, but I'm not sure how to actually test 
       # this without putting some code in the counter for this reason.
@@ -42,5 +60,14 @@ class MutexCounterTest < Test::Unit::TestCase
       assert_equal 1, @counter.value
       assert_equal 11, @counter.real_total
     end
+    
+    should "maintain correct 'real_total' with decrement" do
+      11.times { @counter.inc }
+      assert_equal 1, @counter.value
+      assert_equal 11, @counter.real_total
+      assert_equal 0, @counter.decr
+      assert_equal 10, @counter.real_total
+    end
+    
   end
 end

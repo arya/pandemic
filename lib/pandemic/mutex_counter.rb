@@ -26,5 +26,20 @@ module Pandemic
         @counter += 1
       end
     end
+    
+    # decr only to zero
+    def decr
+      @mutex.synchronize do
+        if @counter > 0
+          @counter -= 1
+        else
+          if @resets > 1
+            @resets -= 1 
+            @counter = @max
+          end
+        end
+        @counter
+      end
+    end
   end
 end

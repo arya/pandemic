@@ -26,6 +26,8 @@ module Pandemic
         @counter += 1
       end
     end
+    alias_method :next, :inc
+    alias_method :succ, :inc
     
     # decr only to zero
     def decr
@@ -41,5 +43,8 @@ module Pandemic
         @counter
       end
     end
+    alias_method :pred, :decr
+    alias_method :prev, :decr
+    
   end
 end

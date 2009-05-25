@@ -33,13 +33,13 @@ require 'pandemic/client_side/pandemize'
 TCP_NO_DELAY_AVAILABLE =
     RUBY_VERSION < '1.9' ? Socket.constants.include?('TCP_NODELAY') : Socket.constants.include?(:TCP_NODELAY)
 
-def epidemic!
+def epidemic!(bind_to = nil)
   if $pandemic_logger.nil?
     $pandemic_logger = Logger.new("pandemic.log")
     $pandemic_logger.level = Logger::INFO
     $pandemic_logger.datetime_format = "%Y-%m-%d %H:%M:%S "
   end
-  Pandemic::ServerSide::Server.boot
+  Pandemic::ServerSide::Server.boot(bind_to)
 end
 
 ::Pandemize = Pandemic::ClientSide::Pandemize

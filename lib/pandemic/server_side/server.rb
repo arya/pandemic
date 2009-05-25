@@ -4,10 +4,10 @@ module Pandemic
       include Util
       class StopServer < Exception; end
       class << self
-        def boot(config = nil)
-          config = config.nil? ? Config.load : config
+        def boot(bind_to = nil)
+          Config.load
           # Process.setrlimit(Process::RLIMIT_NOFILE, 4096) # arbitrary high number of max file descriptors.
-          server = self.new(config)
+          server = self.new(bind_to || Config.bind_to)
           set_signal_traps(server)
           server
         end
@@ -26,9 +26,8 @@ module Pandemic
         end
       end
       attr_reader :host, :port, :running
-      def initialize(config)
-        @config = config
-        @host, @port = host_port(@config.bind_to)
+      def initialize(bind_to)
+        @host, @port = host_port(bind_to)
         @clients = []
         @total_clients = 0
         @clients_mutex = Mutex.new
@@ -36,9 +35,9 @@ module Pandemic
         @num_jobs_entered = MutexCounter.new
         
         @peers = {}
-        @servers = @config.servers
+        @servers = Config.servers
         @servers.each do |peer|
-          next if peer == @config.bind_to # not a peer, it's itself
+          next if peer == bind_to # not a peer, it's itself
           @peers[peer] = Peer.new(peer, self)
         end
       end

@@ -10,9 +10,11 @@ module Pandemic
           @server_map = yaml['servers'] || []
           @servers = @server_map.is_a?(Hash) ? @server_map.values : @server_map 
           @servers = @servers.collect { |s| s.is_a?(Hash) ? s.keys.first : s }
-        
+          
           @response_timeout = (yaml['response_timeout'] || 1).to_f
           @bind_to = extract_bind_to
+          @fork_for_processor = yaml['fork_for_processor']
+          
           raise "Interface to bind to is nil." unless @bind_to
         end
         

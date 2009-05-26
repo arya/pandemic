@@ -2,7 +2,7 @@ module Pandemic
   module ServerSide
     class Config
       class << self
-        attr_accessor :bind_to, :servers, :response_timeout
+        attr_accessor :bind_to, :servers, :response_timeout, :fork_for_processor
         def load
           path = extract_config_path
           yaml = YAML.load_file(path)

@@ -17,6 +17,7 @@ require 'pandemic/server_side/server'
 require 'pandemic/server_side/peer'
 require 'pandemic/server_side/request'
 require 'pandemic/server_side/handler'
+require 'pandemic/server_side/processor'
 
 require 'pandemic/client_side/config'
 require 'pandemic/client_side/cluster_connection'

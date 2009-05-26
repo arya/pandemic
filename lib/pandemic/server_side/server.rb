@@ -130,7 +130,7 @@ module Pandemic
             begin
               request.add_response(self.process(map[signature]))
             rescue Exception => e
-              warn("Unhandled exception in local processing: #{e.inspect}")
+              warn("Unhandled exception in local processing: #{e.inspect}#{e.backtrace.join("\n")}}")
             end
           end
         end
@@ -144,7 +144,11 @@ module Pandemic
     
       def process(body)
         @num_jobs_entered.inc
-        response = @handler.process(body)
+        response = if Config.fork_for_processor
+          self.processor.with_connection {|con| con.process(body) } 
+        else
+          @handler.process(body)
+        end
         @num_jobs_processed.inc
         response
       end
@@ -167,6 +171,14 @@ module Pandemic
       def client_closed(client)
         @clients_mutex.synchronize do
           @clients.delete(client)
+        end
+      end
+      
+      def processor
+        @processor ||= begin
+          processor = ConnectionPool.new
+          processor.create_connection { Processor.new(@handler) }
+          processor
         end
       end
       
@@ -219,7 +231,7 @@ module Pandemic
               counts
             end
         results[:total_jobs_processed] = @num_jobs_processed.to_i
-        results[:jobs_pending] = @num_jobs_entered.to_i - @num_jobs_processed.to_i
+        results[:jobs_pending] = @num_jobs_entered.to_i - results[:total_jobs_processed]
         results[:num_requests] = Request.total_request_count
         results[:late_responses] = Request.total_late_responses
         results[:pending_requests] = @clients_mutex.synchronize do

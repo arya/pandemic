@@ -43,5 +43,5 @@ class WordCounter < Pandemic::ServerSide::Handler
 end
 
 server = epidemic!
-server.handler = WordCounter.new
+server.handler = WordCounter
 server.start.join

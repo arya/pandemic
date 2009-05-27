@@ -2,7 +2,6 @@ module Pandemic
   module ServerSide
     class Processor
       def initialize(handler)
-        @handler = handler
         read_from_parent, write_to_child = IO.pipe
         read_from_child, write_to_parent = IO.pipe
         
@@ -19,6 +18,7 @@ module Pandemic
           read_from_child.close
           @out = write_to_parent
           @in = read_from_parent
+          @handler = handler.new
           wait_for_jobs
         end
       end
@@ -67,6 +67,7 @@ module Pandemic
                 @out.write(result)
               else
                 self.close(size)
+                break
               end
             end
           end

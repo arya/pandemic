@@ -12,7 +12,7 @@ class FunctionalTest < Test::Unit::TestCase
       def process(body)
         body.reverse
       end
-    end.new
+    end
     server.start
     
     client = Class.new do
@@ -30,7 +30,7 @@ class FunctionalTest < Test::Unit::TestCase
       def process(body)
         body.reverse
       end
-    end.new
+    end
     
     ARGV.replace(["-i", "0", "-c", "test/pandemic_server.yml"]) # :(    
     server = epidemic!

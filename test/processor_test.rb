@@ -11,7 +11,7 @@ class HandlerTest < Test::Unit::TestCase
         end
       end
 
-      @processor = Pandemic::ServerSide::Processor.new(echo.new)
+      @processor = Pandemic::ServerSide::Processor.new(echo)
     end
     
     should "have a running child process" do

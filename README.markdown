@@ -18,7 +18,7 @@ The framework is designed to be as flexible as possible, there is no rigid reque
     end
 
     pandemic_server = epidemic!
-    pandemic_server.handler = Handler.new
+    pandemic_server.handler = Handler # Pandemic will call the initializer once per process
     pandemic_server.start.join
 
 In this example, the handler doesn't define the map or reduce methods, and the defaults are used. The default for each is as follows:
@@ -112,3 +112,12 @@ To run the example in the _examples_ folder, fire up two to three terminal windo
   * cd examples/client; ruby client.rb
   
 The servers are going to try to bind to localhost:4000 and localhost:4001 so make sure those are available.
+
+## Enabling Forking
+By default, the handler runs in the same Ruby process as Pandemic. By setting the fork\_for\_processor to true in pandemic\_server.yml, you can have Pandemic fork to new processes to run the process method. This is particularly useful when your process method goes to MySQL which locks the entire process until MySQL returns.
+
+## Change History
+Version 0.3.0
+
+ * Pandemic can now fork to call the process method
+ * Pandemic server now expects a class instead of a instance of the handler when booting the server, it will call the initializer method once per process.

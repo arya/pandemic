@@ -25,7 +25,7 @@ class ServerTest < Test::Unit::TestCase
       @tcpserver.expects(:accept).twice.returns(nil).then.raises(Pandemic::ServerSide::Server::StopServer)
       @tcpserver.expects(:close)
       @peer.expects(:disconnect)
-      @server.handler = mock()
+      @server.handler = mock(:new)
       @server.start
       wait_for_threads(ignore_threads)
     end
@@ -50,7 +50,7 @@ class ServerTest < Test::Unit::TestCase
       @peer.expects(:disconnect)
       client.expects(:listen).returns(client)
       client.expects(:close).at_most_once # optional due to threaded nature, this may not actually happen
-      @server.handler = mock()
+      @server.handler = mock(:new)
       @server.start
       wait_for_threads(ignore_threads)
     end
@@ -72,21 +72,25 @@ class ServerTest < Test::Unit::TestCase
       @peer.expects(:host).returns("localhost")
       @peer.expects(:port).returns(4001)
       @peer.expects(:add_incoming_connection).with(@conn)
-      @server.handler = mock()
+      @server.handler = mock(:new)
       
       @server.start
       wait_for_threads(ignore_threads)
     end
    
     should "call process on handler" do
+      handler_class = mock()
       handler = mock()
+      handler_class.expects(:new).once.returns(handler)
       handler.expects(:process).with("body")
-      @server.handler = handler
+      @server.handler = handler_class
       @server.process("body")
     end
     
     should "map request, distribute to peers, and reduce" do
+      handler_class = mock()
       handler = mock()
+      handler_class.expects(:new).once.returns(handler)
       request = mock()
       request.expects(:hash).at_least_once.returns("abcddef134123")
       @peer.expects(:connected?).returns(true)
@@ -100,7 +104,7 @@ class ServerTest < Test::Unit::TestCase
       request.expects(:wait_for_responses).once
       handler.expects(:reduce).with(request)
       
-      @server.handler = handler
+      @server.handler = handler_class
       
       @server.handle_client_request(request)
       # wait_for_threads

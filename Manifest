@@ -1,3 +1,8 @@
+examples/client/client.rb
+examples/client/constitution.txt
+examples/client/pandemic_client.yml
+examples/server/pandemic_server.yml
+examples/server/word_count_server.rb
 lib/pandemic/client_side/cluster_connection.rb
 lib/pandemic/client_side/config.rb
 lib/pandemic/client_side/connection.rb
@@ -9,12 +14,12 @@ lib/pandemic/server_side/client.rb
 lib/pandemic/server_side/config.rb
 lib/pandemic/server_side/handler.rb
 lib/pandemic/server_side/peer.rb
+lib/pandemic/server_side/processor.rb
 lib/pandemic/server_side/request.rb
 lib/pandemic/server_side/server.rb
 lib/pandemic/util.rb
 lib/pandemic.rb
 Manifest
 MIT-LICENSE
-pandemic.gemspec
 Rakefile
 README.markdown

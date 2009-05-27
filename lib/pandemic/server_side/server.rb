@@ -44,6 +44,7 @@ module Pandemic
       
       def handler=(handler)
         @handler = handler
+        @handler_instance = handler.new
       end
     
       def start
@@ -114,7 +115,7 @@ module Pandemic
     
       def handle_client_request(request)
         info("Handling client request")
-        map = @handler.map(request, connection_statuses)
+        map = @handler_instance.map(request, connection_statuses)
         request.max_responses = map.size
         debug("Sending client request to #{map.size} handlers (#{request.hash})")
         
@@ -139,7 +140,7 @@ module Pandemic
         request.wait_for_responses
         
         debug("Done waiting for responses, calling reduce")
-        @handler.reduce(request)
+        @handler_instance.reduce(request)
       end
     
       def process(body)
@@ -147,7 +148,7 @@ module Pandemic
         response = if Config.fork_for_processor
           self.processor.with_connection {|con| con.process(body) } 
         else
-          @handler.process(body)
+          @handler_instance.process(body)
         end
         @num_jobs_processed.inc
         response

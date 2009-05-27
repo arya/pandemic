@@ -40,6 +40,7 @@ module Pandemic
       
       def close(status = 0)
         if parent? && child_alive?
+          Process.detach(@child_process_id)
           @out.puts(status.to_s)
           @out.close
           @in.close
@@ -82,8 +83,6 @@ module Pandemic
       
       def child_alive?
         parent? && !@in.closed?
-        # TODO: do it.
-        # parent? && # how to check status?
       end
     end
   end

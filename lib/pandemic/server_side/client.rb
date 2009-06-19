@@ -1,6 +1,8 @@
 module Pandemic
   module ServerSide
     class Client
+      REQUEST_FLAGS = {:async => 'a'}
+      REQUEST_REGEXP = /^([0-9]+)(?: ([#{REQUEST_FLAGS.values.join('')}]*))?$/
       class DisconnectClient < Exception; end
       include Util
       
@@ -30,21 +32,24 @@ module Pandemic
                   @connection.close
                   @connection = nil
                   break
-                elsif request.strip! =~ /^([0-9]+)$/ # currently only asking for request size
-                  size = $1.to_i
+                elsif request.strip! =~ REQUEST_REGEXP
+                  size, flags = $1.to_i, $2.to_s.split("")
                   debug("Reading request body (size #{size})")
                   body = @connection.read(size)
                   debug("Finished reading request body")
+                  if flags.include?(REQUEST_FLAGS[:async])
+                    Thread.new { handle_request(body) }
+                  else
+                    response = handle_request(body)
                   
-                  response = handle_request(body)
+                    debug("Writing response to client")
                   
-                  debug("Writing response to client")
-                  
-                  # the connection could be closed, we'll let it be rescued if it is.
-                  @connection.write("#{response.size}\n#{response}")
-                  @connection.flush
+                    # the connection could be closed, we'll let it be rescued if it is.
+                    @connection.write("#{response.size}\n#{response}")
+                    @connection.flush
+                    debug("Finished writing response to client")
+                  end
                   @responded_requests += 1
-                  debug("Finished writing response to client")
                 end
               end
             rescue DisconnectClient

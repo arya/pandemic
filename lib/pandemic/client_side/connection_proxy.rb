@@ -7,9 +7,9 @@ module Pandemic
         @key, @cluster = key, cluster
       end
       
-      def request(body)
-        @cluster.request(body, @key)
-      end
+      def request(body, options = {})
+        @cluster.request(body, @key, options)
+      end      
     end
   end
 end

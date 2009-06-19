@@ -40,19 +40,28 @@ module Pandemic
         @connection_proxies[key]
       end
       
-      def request(body, key = nil)
+      def request(body, key = nil, options = {})
         with_connection(key) do |socket|
           begin
-            socket.write("#{body.size}\n#{body}")
+            flags = []
+            if options[:async]
+              flags << "a"
+            end
+            flags = flags.empty? ? "" : " #{flags.join("")}"
+            
+            socket.write("#{body.size}#{flags}\n#{body}")
             socket.flush
-            is_ready = IO.select([socket], nil, nil, @response_timeout)
-            raise NodeTimedOut if is_ready.nil?
-            response_size = socket.gets
-            if response_size
-              socket.read(response_size.strip.to_i)
-            else
-              # nil response size
-              raise LostConnectionToNode
+            
+            unless options[:async]
+              is_ready = IO.select([socket], nil, nil, @response_timeout)
+              raise NodeTimedOut if is_ready.nil?
+              response_size = socket.gets
+              if response_size
+                socket.read(response_size.strip.to_i)
+              else
+                # nil response size
+                raise LostConnectionToNode
+              end
             end
           rescue Errno::ECONNRESET
             raise LostConnectionToNode

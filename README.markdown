@@ -1,7 +1,7 @@
 # Pandemic
-Pandemic is a map-reduce framework. You give it the map, process, and reduce methods and it handles the rest. It's designed to serve requests in real-time, but can also be used for offline tasks.
+Pandemic is a map-reduce-ish framework. It allows you to partition requests and distribute them as you please, then process the request (or parts of it) on any number of nodes, and then reduce the response however you please. It's designed to serve requests in real-time, but can also be used for offline tasks.
 
-It's different from the typical map-reduce framework in that it doesn't have a master-worker structure. Every node can map, process, and reduce. It also doesn't have the concept of jobs, everything is a request.
+It's different from the typical map-reduce framework in that it doesn't have a master-worker structure. Every node does can do everything. It's actually not strictly a map-reduce framework, it's a bit more lenient on what you can do to your data/request other than map and reduce.
 
 The framework is designed to be as flexible as possible, there is no rigid request format, or API, you can specify it however you want. You can send it http-style headers and a body, you can send it JSON, or you can even just send it a single line and have it do whatever you want. The only requirement is that you write your handler to appropriately act on the request and return the response.
 
@@ -21,9 +21,9 @@ The framework is designed to be as flexible as possible, there is no rigid reque
     pandemic_server.handler = Handler # Pandemic will call the initializer once per process
     pandemic_server.start.join
 
-In this example, the handler doesn't define the map or reduce methods, and the defaults are used. The default for each is as follows:
+In this example, the handler doesn't define the partition or reduce methods, and the defaults are used. The default for each is as follows:
 
-  * map: Send the full request body to every connected node
+  * partition: Send the full request body to every connected node
   * process: Return the body (do nothing)
   * reduce: Concatenate all the responses
 
@@ -117,6 +117,8 @@ The servers are going to try to bind to localhost:4000 and localhost:4001 so mak
 By default, the handler runs in the same Ruby process as Pandemic. By setting the fork\_for\_processor to true in pandemic\_server.yml, you can have Pandemic fork to new processes to run the process method. This is particularly useful when your process method goes to MySQL which locks the entire process until MySQL returns.
 
 ## Change History
+Version 0.3.1
+ * Changed map to partition to more accurately reflect what it does. This breaks backwards compatibility, but all you have to do is rename your method.
 Version 0.3.0
 
  * Pandemic can now fork to call the process method

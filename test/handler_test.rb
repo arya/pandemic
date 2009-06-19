@@ -21,7 +21,7 @@ class HandlerTest < Test::Unit::TestCase
     
     should "map to all non-disconnected nodes" do
       @request.expects(:body).twice.returns("123")
-      map = @handler.map(@request, @servers)
+      map = @handler.partition(@request, @servers)
       # see setup for @servers
       assert_equal 2, map.size
       assert_equal "123", map[1]

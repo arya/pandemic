@@ -94,7 +94,7 @@ class ServerTest < Test::Unit::TestCase
       request = mock()
       request.expects(:hash).at_least_once.returns("abcddef134123")
       @peer.expects(:connected?).returns(true)
-      handler.expects(:map).with(request, is_a(Hash)).returns({"localhost:4000" => "1", "localhost:4001" => "2"})
+      handler.expects(:partition).with(request, is_a(Hash)).returns({"localhost:4000" => "1", "localhost:4001" => "2"})
       request.expects(:max_responses=).with(2)
       @peer.expects(:client_request).with(request, "2")
       

@@ -115,7 +115,7 @@ module Pandemic
     
       def handle_client_request(request)
         info("Handling client request")
-        map = @handler_instance.map(request, connection_statuses)
+        map = @handler_instance.partition(request, connection_statuses)
         request.max_responses = map.size
         debug("Sending client request to #{map.size} handlers (#{request.hash})")
         

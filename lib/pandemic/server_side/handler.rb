@@ -4,8 +4,8 @@ module Pandemic
       def config
         Config
       end
-        
-      def map(request, servers)
+      
+      def partition(request, servers)
         map = {}
         servers.each do |server, status|
           if status != :disconnected

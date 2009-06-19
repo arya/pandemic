@@ -3,7 +3,7 @@ require 'pandemic'
 require 'json'
 
 class WordCounter < Pandemic::ServerSide::Handler
-  def map(request, servers)
+  def partition(request, servers)
     # select only the alive servers (non-disconnected)
     only_alive = servers.keys.select{|k| servers[k] != :disconnected}
     

@@ -21,5 +21,6 @@ lib/pandemic/util.rb
 lib/pandemic.rb
 Manifest
 MIT-LICENSE
+pandemic.gemspec
 Rakefile
 README.markdown

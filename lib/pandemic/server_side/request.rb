@@ -7,6 +7,7 @@ module Pandemic
       @@late_responses = MutexCounter.new
       attr_reader :body
       attr_accessor :max_responses
+      attr_accessor :data
       
       def self.total_request_count
         @@request_count.real_total

@@ -40,7 +40,7 @@ module Pandemic
         @connection_proxies[key]
       end
       
-      def request(body, key = nil, options = nil)
+      def request(body, key = nil, options = {})
         key, options = nil, key if key.is_a?(Hash)
         with_connection(key) do |socket|
           begin

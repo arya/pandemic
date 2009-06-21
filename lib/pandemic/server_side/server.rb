@@ -237,7 +237,7 @@ module Pandemic
         results[:late_responses] = Request.total_late_responses
         results[:pending_requests] = @clients_mutex.synchronize do
           @clients.inject(0) do |pending, client|
-            pending + (client.received_requests - client.responded_requests)
+            pending + (client.received_requests - client.responded_requests.to_i)
           end
         end
         

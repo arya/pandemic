@@ -12,7 +12,7 @@ module Pandemic
         @connection = connection
         @server = server
         @received_requests = 0
-        @responded_requests = 0
+        @responded_requests = MutexCounter.new                                                             
         @current_request = nil
       end
     
@@ -38,7 +38,10 @@ module Pandemic
                   body = @connection.read(size)
                   debug("Finished reading request body")
                   if flags.include?(REQUEST_FLAGS[:async])
-                    Thread.new { handle_request(body) }
+                    Thread.new do
+                      handle_request(body)
+                      @responded_requests.inc
+                    end
                   else
                     response = handle_request(body)
                   
@@ -48,8 +51,8 @@ module Pandemic
                     @connection.write("#{response.size}\n#{response}")
                     @connection.flush
                     debug("Finished writing response to client")
+                    @responded_requests.inc
                   end
-                  @responded_requests += 1
                 end
               end
             rescue DisconnectClient

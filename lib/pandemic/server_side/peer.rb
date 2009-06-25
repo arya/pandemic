@@ -86,7 +86,7 @@ module Pandemic
       private
       def initialize_connection_pool
         return if @connection_pool
-        @connection_pool = ConnectionPool.new
+        @connection_pool = ConnectionPool.new(:connect_at_define => false)
         
         @connection_pool.create_connection do
           connection = nil

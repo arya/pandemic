@@ -50,17 +50,18 @@ module Pandemic
       def start
         raise "You must specify a handler" unless @handler
         
-        debug("Listening")
         @listener = TCPServer.new(@host, @port)
         @running = true
         @running_since = Time.now
         
+        debug("Connecting to peers")
         @peers.values.each { |peer| peer.connect }
-        
+
         @listener_thread = Thread.new do
           begin
             while @running
               begin
+                debug("Listening")
                 conn = @listener.accept
                 Thread.new(conn) { |c| handle_connection(c) }
               rescue Errno::ECONNABORTED, Errno::EINTR 

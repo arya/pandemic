@@ -11,6 +11,7 @@ module Pandemic
       @connections = []
       @max_connections = options[:max_connections] || 10
       @min_connections = options[:min_connections] || 1
+      @connect_at_define = options.include?(:connect_at_define) ? options[:connect_at_define] : true
       @timeout = options[:timeout] || 3
     end
     
@@ -36,7 +37,7 @@ module Pandemic
         end
       else
         @create_connection = block
-        connect
+        connect if @connect_at_define
       end
     end
     

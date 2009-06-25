@@ -37,7 +37,7 @@ module Pandemic
       
       
       def [](key)
-        @connection_proxies[key]
+        @connection_proxies[key % @connection_proxies.size]
       end
       
       def request(body, key = nil, options = {})

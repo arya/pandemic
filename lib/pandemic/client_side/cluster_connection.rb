@@ -44,6 +44,7 @@ module Pandemic
         key, options = nil, key if key.is_a?(Hash)
         with_connection(key) do |socket|
           begin
+            raise LostConnectionToNode if socket.nil?
             flags = []
             if options[:async]
               flags << "a"
@@ -64,7 +65,7 @@ module Pandemic
                 raise LostConnectionToNode
               end
             end
-          rescue Errno::ECONNRESET
+          rescue Errno::ECONNRESET, Errno::EPIPE
             raise LostConnectionToNode
           end
         end
@@ -76,6 +77,9 @@ module Pandemic
         begin
           connection = checkout_connection(key)
           block.call(connection.socket)
+        rescue LostConnectionToNode
+          connection.died!
+          raise
         ensure
           checkin_connection(connection) if connection
         end
@@ -90,6 +94,8 @@ module Pandemic
             if select_from.size > 0
               connection = select_from.pop
               connection.ensure_alive!
+              break unless connection.alive?
+              
               if key.nil?
                 @grouped_available[key].delete(connection)
               else

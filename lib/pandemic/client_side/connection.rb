@@ -12,7 +12,12 @@ module Pandemic
       end
       
       def ensure_alive!
-        connect unless alive?
+        connect unless self.alive?
+      end
+      
+      def died!
+        @socket.close if self.alive?
+        @socket = nil
       end
 
       private

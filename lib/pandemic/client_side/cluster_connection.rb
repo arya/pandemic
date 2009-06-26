@@ -89,6 +89,7 @@ module Pandemic
           loop do
             if select_from.size > 0
               connection = select_from.pop
+              connection.ensure_alive!
               if key.nil?
                 @grouped_available[key].delete(connection)
               else

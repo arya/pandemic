@@ -10,6 +10,10 @@ module Pandemic
       def alive?
         @socket && !@socket.closed?
       end
+      
+      def ensure_alive!
+        connect unless alive?
+      end
 
       private
       def connect

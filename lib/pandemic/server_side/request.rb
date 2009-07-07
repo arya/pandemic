@@ -21,7 +21,8 @@ module Pandemic
         @request_number = @@request_count.inc
         @body = body
         @responses = []
-        @responses_mutex = Mutex.new
+        @responses_mutex = Monitor.new
+        @waiter = @responses_mutex.new_cond
         @complete = false
       end
     
@@ -42,7 +43,7 @@ module Pandemic
       end
       
       def wakeup_waiting_thread
-        @waiting_thread.wakeup if @waiting_thread && @waiting_thread.status == "sleep"
+        @waiter.signal if @waiter
       end
     
       def responses
@@ -57,18 +58,15 @@ module Pandemic
       end
     
       def wait_for_responses
-        return if @complete
-        @waiting_thread = Thread.current
-        if Config.response_timeout <= 0
-          Thread.stop
-        else
-          sleep Config.response_timeout
+        @responses_mutex.synchronize do
+          return if @complete
+          if Config.response_timeout <= 0
+            @waiter.wait
+          else
+            @waiter.wait(Config.response_timeout)
+          end
+          @responses.freeze
         end
-        # there is a race case where if the sleep finishes, 
-        # and response comes in and has the mutex, and then array is frozen
-        # it would be ideal to use monitor wait/signal here but the monitor implementation is currently flawed
-        @responses_mutex.synchronize { @responses.freeze }
-        @waiting_thread = nil
       end
       
       def hash

@@ -1,6 +1,8 @@
 # Pandemic
 Pandemic is a map-reduce-ish framework. It allows you to partition requests and distribute them as you please, then process the request (or parts of it) on any number of nodes, and then reduce the response however you please. It's designed to serve requests in real-time, but can also be used for offline tasks.
 
+One example of where it's currently being used is to do online analysis of user behavior to detect automation. It averages 200 requests per second (300 peak) across 6 nodes, each node dealing with millions of requests each day.
+
 It's different from the typical map-reduce framework in that it doesn't have a master-worker structure. Every node does can do everything. It's actually not strictly a map-reduce framework, it's a bit more lenient on what you can do to your data/request other than map and reduce.
 
 The framework is designed to be as flexible as possible, there is no rigid request format, or API, you can specify it however you want. You can send it http-style headers and a body, you can send it JSON, or you can even just send it a single line and have it do whatever you want. The only requirement is that you write your handler to appropriately act on the request and return the response.

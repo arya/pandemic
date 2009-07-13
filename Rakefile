@@ -2,8 +2,8 @@ require 'rubygems'
 require 'rake'
 require 'echoe'
 
-Echoe.new('pandemic', '0.4.0') do |p|
-  p.description    = "Distribute MapReduce to any of the workers and it will spread, like a pandemic."
+Echoe.new('pandemic', '0.4.1') do |p|
+  p.description    = "A framework for distributing work for real-time services and offline tasks."
   p.url            = "https://github.com/arya/pandemic/"
   p.author         = "Arya Asemanfar"
   p.email          = "aryaasemanfar@gmail.com"

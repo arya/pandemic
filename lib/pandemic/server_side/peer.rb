@@ -69,7 +69,7 @@ module Pandemic
               end
             end
           rescue Exception => e
-            warn("Unhandled exception in peer listener thread: #{e.inspect}")
+            warn("Unhandled exception in peer listener thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           ensure
             debug("Incoming connection closing")
             conn.close if conn && !conn.closed?
@@ -103,7 +103,7 @@ module Pandemic
               retry
             end
           rescue Exception => e
-            warn("Unhandled exception in create connection block: #{e.inspect}")
+            warn("Unhandled exception in create connection block:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
           if connection
             connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if TCP_NO_DELAY_AVAILABLE
@@ -128,7 +128,7 @@ module Pandemic
             # TODO: what to do here?
             return false
           rescue Exception => e
-            warn("Unhandled exception in incoming request read: #{e.inspect}")
+            warn("Unhandled exception in incoming request read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
           debug("Processing body")
           process_request(hash, request_body)
@@ -153,7 +153,7 @@ module Pandemic
             # TODO: what to do here?
             return false
           rescue Exception => e
-            warn("Unhandled exception in incoming response read: #{e.inspect}")
+            warn("Unhandled exception in incoming response read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
           process_response(hash, response_body)
         else
@@ -177,7 +177,7 @@ module Pandemic
               debug( "Finished sending response (#{hash})")
             end
           rescue Exception => e
-            warn("Unhandled exception in process request thread: #{e.inspect}")
+            warn("Unhandled exception in process request thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
         end
       end
@@ -194,7 +194,7 @@ module Pandemic
               warn("Original response not found (#{hash})")
             end
           rescue Exception => e
-            warn("Unhandled exception in process response thread: #{e.inspect}")
+            warn("Unhandled exception in process response thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
         end
       end

@@ -62,7 +62,7 @@ module Pandemic
               info("Connection to client lost")
               close_connection
             rescue Exception => e
-              warn("Unhandled exception in client listen thread: #{e.inspect}")
+              warn("Unhandled exception in client listen thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
             ensure
               @current_request.cancel! if @current_request
               @server.client_closed(self)

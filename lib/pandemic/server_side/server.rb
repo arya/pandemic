@@ -75,7 +75,7 @@ module Pandemic
             @peers.values.each { |p| p.disconnect }
             @clients.each {|c| c.close }
           rescue Exception => e
-            warn("Unhandled exception in server listening thread: #{e.inspect}")
+            warn("Unhandled exception in server listening thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
         end
       end
@@ -110,7 +110,7 @@ module Pandemic
             connection.close # i dunno you
           end
         rescue Exception => e
-          warn("Unhandled exception in handle connection method: #{e.inspect}")
+          warn("Unhandled exception in handle connection method:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
         end
       end
     
@@ -132,7 +132,7 @@ module Pandemic
             begin
               request.add_response(self.process(map[signature]))
             rescue Exception => e
-              warn("Unhandled exception in local processing: #{e.inspect}#{e.backtrace.join("\n")}}")
+              warn("Unhandled exception in local processing:\n#{e.inspect}#{e.backtrace.join("\n")}}")
             end
           end
         end

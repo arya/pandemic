@@ -74,6 +74,7 @@ module Pandemic
             @listener.close if @listener
             @peers.values.each { |p| p.disconnect }
             @clients.each {|c| c.close }
+            self.processor.disconnect if Config.fork_for_processor
           rescue Exception => e
             warn("Unhandled exception in server listening thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end

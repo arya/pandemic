@@ -1,7 +1,7 @@
 module Pandemic
   class ConnectionPool
-    class TimedOutWaitingForConnectionException < Exception; end
-    class CreateConnectionUndefinedException < Exception; end
+    class TimedOutWaitingForConnectionException < StandardError; end
+    class CreateConnectionUndefinedException < StandardError; end
     include Util
     def initialize(options = {})
       @connected = false

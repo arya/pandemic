@@ -1,10 +1,10 @@
 module Pandemic
   module ClientSide
     class ClusterConnection
-      class NotEnoughConnectionsTimeout < Exception; end
-      class NoNodesAvailable < Exception; end
-      class LostConnectionToNode < Exception; end
-      class NodeTimedOut < Exception; end
+      class NotEnoughConnectionsTimeout < StandardError; end
+      class NoNodesAvailable < StandardError; end
+      class LostConnectionToNode < StandardError; end
+      class NodeTimedOut < StandardError; end
       
       include Util
       def initialize

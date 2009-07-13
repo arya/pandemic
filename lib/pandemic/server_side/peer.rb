@@ -1,7 +1,7 @@
 module Pandemic
   module ServerSide
     class Peer
-      class PeerUnavailableException < Exception; end
+      class PeerUnavailableException < StandardError; end
       include Util
       attr_reader :host, :port
       

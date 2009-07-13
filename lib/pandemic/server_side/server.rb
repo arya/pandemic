@@ -101,6 +101,7 @@ module Pandemic
             debug("Recognized as client")
             @clients_mutex.synchronize do
               @clients << Client.new(connection, self).listen
+              @total_clients += 1
             end
           elsif identification =~ /^stats$/
             debug("Stats request received")

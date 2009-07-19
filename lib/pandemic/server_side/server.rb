@@ -34,7 +34,7 @@ module Pandemic
         @num_jobs_processed = MutexCounter.new
         @num_jobs_entered = MutexCounter.new
         
-        @peers = {}
+        @peers = with_mutex({})
         @servers = Config.servers
         @servers.each do |peer|
           next if peer == bind_to # not a peer, it's itself
@@ -64,7 +64,7 @@ module Pandemic
                 debug("Listening")
                 conn = @listener.accept
                 Thread.new(conn) { |c| handle_connection(c) }
-              rescue Errno::ECONNABORTED, Errno::EINTR 
+              rescue Errno::ECONNABORTED, Errno::EINTR # TODO: what else can wrong here? this should be more robust.
                 debug("Connection accepted aborted")
                 conn.close if conn && !conn.closed?
               end
@@ -96,8 +96,17 @@ module Pandemic
             debug("Recognized as peer")
             host, port = host_port($1)
             matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
-            debug("Found matching peer")
-            matching_peer.add_incoming_connection(connection) unless matching_peer.nil?
+            if matching_peer
+              debug("Found matching peer")
+            else
+              debug("Didn't find matching peer, adding it")
+              matching_peer = @peers.synchronize do
+                hostport = "#{host}:#{port}"
+                @servers.push(hostport) unless @servers.include?(hostport)
+                @peers[hostport] ||= Peer.new(hostport, self)
+              end
+            end
+            matching_peer.add_incoming_connection(connection)
           elsif identification =~ /^CLIENT$/
             debug("Recognized as client")
             @clients_mutex.synchronize do

@@ -3,6 +3,33 @@ require 'test_helper'
 class ServerTest < Test::Unit::TestCase
   include TestHelper
   
+  context "without a peer list" do
+    setup do
+      Pandemic::ServerSide::Config.expects(:servers).returns(["localhost:4000"])
+      @server = Pandemic::ServerSide::Server.new("localhost:4000")
+    end
+    
+    should "create a peer connection when a unknown peer tries to connect" do
+      ignore_threads = Thread.list
+      @tcpserver = mock()
+      TCPServer.expects(:new).with("localhost", 4000).returns(@tcpserver)
+      
+      @conn = mock(:peeraddr => ['','','',''])
+      @tcpserver.expects(:accept).twice.returns(@conn).then.raises(Pandemic::ServerSide::Server::StopServer)
+      peer = mock()
+      @conn.expects(:setsockopt).with(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+      
+      @conn.expects(:gets).returns("SERVER localhost:4001\n")
+      Pandemic::ServerSide::Peer.expects(:new).with("localhost:4001", is_a(Pandemic::ServerSide::Server)).returns(peer)
+      @tcpserver.expects(:close)
+      peer.stubs(:disconnect) # the StopServer signal could be called before the peer is added. race case not important for this test
+      
+      @server.handler = mock(:new)
+      @server.start
+      wait_for_threads(ignore_threads)
+    end
+  end
+  
   should "initialize peers" do
     Pandemic::ServerSide::Config.expects(:servers).returns(["localhost:4000", "localhost:4001"])
     Pandemic::ServerSide::Peer.expects(:new).with("localhost:4001", is_a(Pandemic::ServerSide::Server))

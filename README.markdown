@@ -119,6 +119,10 @@ The servers are going to try to bind to localhost:4000 and localhost:4001 so mak
 By default, the handler runs in the same Ruby process as Pandemic. By setting the fork\_for\_processor to true in pandemic\_server.yml, you can have Pandemic fork to new processes to run the process method. This is particularly useful when your process method goes to MySQL which locks the entire process until MySQL returns.
 
 ## Change History
+**Version 0.4.2**
+
+ * Log file and log level now specify-able as hash attributes to the _epidemic!_ method.
+
 **Version 0.3.1**
 
  * Changed map to partition to more accurately reflect what it does. This breaks backwards compatibility, but all you have to do is rename your method.

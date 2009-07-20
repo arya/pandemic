@@ -25,22 +25,16 @@ require 'pandemic/client_side/connection'
 require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
 
-# TODO:
-# - tests
-# - IO timeouts/robustness
-# - documentation
-# - PING/PONG?
-
 TCP_NO_DELAY_AVAILABLE =
     RUBY_VERSION < '1.9' ? Socket.constants.include?('TCP_NODELAY') : Socket.constants.include?(:TCP_NODELAY)
 
-def epidemic!(bind_to = nil)
+def epidemic!(options = {})
   if $pandemic_logger.nil?
-    $pandemic_logger = Logger.new("pandemic.log")
-    $pandemic_logger.level = Logger::INFO
+    $pandemic_logger = Logger.new(options[:log_file] || "pandemic.log")
+    $pandemic_logger.level = options[:log_level] || Logger::INFO
     $pandemic_logger.datetime_format = "%Y-%m-%d %H:%M:%S "
   end
-  Pandemic::ServerSide::Server.boot(bind_to)
+  Pandemic::ServerSide::Server.boot(options[:bind_to])
 end
 
 ::Pandemize = Pandemic::ClientSide::Pandemize

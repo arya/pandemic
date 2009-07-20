@@ -33,6 +33,7 @@ module Pandemic
         @clients_mutex = Mutex.new
         @num_jobs_processed = MutexCounter.new
         @num_jobs_entered = MutexCounter.new
+        @requests_per_second = RequestsPerSecond.new(10)
         
         @peers = with_mutex({})
         @servers = Config.servers
@@ -148,6 +149,8 @@ module Pandemic
           end
         end
         
+        @requests_per_second.hit
+        
         debug("Waiting for responses")
         request.wait_for_responses
         
@@ -211,6 +214,8 @@ module Pandemic
           str << "Late Responses: #{stats[:late_responses]}"
           str << "Total Jobs Processed: #{stats[:total_jobs_processed]}"
           str << "Pending Jobs: #{stats[:jobs_pending]}"
+          str << "Requests per Second (10 sec): #{"%.1f" % stats[:rps_10]}"
+          str << "Requests per Second (lifetime): #{"%.1f" % stats[:rps_lifetime]}"
           connection.puts(str.join("\n"))
         end while (s = connection.gets) && (s.strip == "stats" || s.strip == "")
         connection.close if connection && !connection.closed?
@@ -252,8 +257,11 @@ module Pandemic
             pending + (client.received_requests - client.responded_requests.to_i)
           end
         end
+        results[:rps_10] = @requests_per_second.rps
         
         results[:uptime] = Time.now - @running_since
+        results[:rps_lifetime] = results[:num_requests] / results[:uptime]
+        
         results
       end
       

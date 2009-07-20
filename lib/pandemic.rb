@@ -10,6 +10,7 @@ require 'logger'
 require 'pandemic/util'
 require 'pandemic/connection_pool'
 require 'pandemic/mutex_counter'
+require 'pandemic/requests_per_second'
 
 require 'pandemic/server_side/config'
 require 'pandemic/server_side/client'

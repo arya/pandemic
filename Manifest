@@ -10,6 +10,7 @@ lib/pandemic/client_side/connection_proxy.rb
 lib/pandemic/client_side/pandemize.rb
 lib/pandemic/connection_pool.rb
 lib/pandemic/mutex_counter.rb
+lib/pandemic/requests_per_second.rb
 lib/pandemic/server_side/client.rb
 lib/pandemic/server_side/config.rb
 lib/pandemic/server_side/handler.rb

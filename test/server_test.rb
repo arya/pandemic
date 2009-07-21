@@ -30,6 +30,32 @@ class ServerTest < Test::Unit::TestCase
     end
   end
   
+  should "create a pid file" do
+    ignore_threads = Thread.list
+    
+    Pandemic::ServerSide::Config.expects(:pid_file).at_least_once.returns("test/pandemic.pid")
+    Pandemic::ServerSide::Config.expects(:servers).at_least_once.returns([])
+    @server = Pandemic::ServerSide::Server.new("localhost:4000")
+    
+    @tcpserver = mock()
+    TCPServer.expects(:new).with("localhost", 4000).returns(@tcpserver)
+    
+    file = mock()
+    File.expects(:open).with("test/pandemic.pid", "w").yields(file)
+    file.expects(:write).with(Process.pid)
+    File.expects(:chmod)
+    File.expects(:exists?).with("test/pandemic.pid").returns(true)
+    File.expects(:unlink).with("test/pandemic.pid")
+    
+    @tcpserver.expects(:accept).once.raises(Pandemic::ServerSide::Server::StopServer)
+    
+    @tcpserver.expects(:close)
+    
+    @server.handler = mock(:new)
+    @server.start
+    wait_for_threads(ignore_threads)
+  end
+  
   should "initialize peers" do
     Pandemic::ServerSide::Config.expects(:servers).returns(["localhost:4000", "localhost:4001"])
     Pandemic::ServerSide::Peer.expects(:new).with("localhost:4001", is_a(Pandemic::ServerSide::Server))

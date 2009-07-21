@@ -6,6 +6,7 @@ require 'monitor'
 require 'yaml'
 require 'digest/md5'
 require 'logger'
+require 'optparse'
 
 require 'pandemic/util'
 require 'pandemic/connection_pool'

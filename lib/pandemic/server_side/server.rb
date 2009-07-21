@@ -52,6 +52,7 @@ module Pandemic
         raise "You must specify a handler" unless @handler
         
         @listener = TCPServer.new(@host, @port)
+        write_pid_file
         @running = true
         @running_since = Time.now
         
@@ -72,6 +73,7 @@ module Pandemic
             end
           rescue StopServer
             info("Stopping server")
+            remove_pid_file
             @listener.close if @listener
             @peers.values.each { |p| p.disconnect }
             @clients.each {|c| c.close }
@@ -263,6 +265,18 @@ module Pandemic
         results[:rps_lifetime] = results[:num_requests] / results[:uptime]
         
         results
+      end
+      
+      def remove_pid_file
+        File.unlink(Config.pid_file) if Config.pid_file && File.exists?(Config.pid_file)
+      end
+
+      def write_pid_file
+        return if Config.pid_file.nil?
+        File.open(Config.pid_file,"w") do |f|
+          f.write(Process.pid)
+          File.chmod(0644, Config.pid_file)
+        end      
       end
       
     end

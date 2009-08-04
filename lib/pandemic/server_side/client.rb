@@ -44,13 +44,20 @@ module Pandemic
                     end
                   else
                     response = handle_request(body)
-                  
-                    debug("Writing response to client")
-                  
-                    # the connection could be closed, we'll let it be rescued if it is.
-                    @connection.write("#{response.size}\n#{response}")
-                    @connection.flush
-                    debug("Finished writing response to client")
+                    if response
+                      debug("Writing response to client")
+
+                      # the connection could be closed, we'll let it be rescued if it is.
+                      @connection.write("#{response.size}\n#{response}")
+                      @connection.flush
+                      debug("Finished writing response to client")
+                    else
+                      debug("Writing error code to client")
+                      
+                      @connection.write("-1")
+                      @connection.flush
+                      debug("Finished writing error code to client")
+                    end
                     @responded_requests.inc
                   end
                 end
@@ -84,7 +91,7 @@ module Pandemic
           @server.handle_client_request(@current_request)
         rescue Exception => e
           warn("Unhandled exception in handle client request:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
-        end
+        end || "Error"
         @current_request = nil
         return response
       end

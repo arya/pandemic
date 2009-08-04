@@ -5,6 +5,8 @@ module Pandemic
       class NoNodesAvailable < StandardError; end
       class LostConnectionToNode < StandardError; end
       class NodeTimedOut < StandardError; end
+      class RequestFailed < StandardError; end
+      
       
       include Util
       def initialize
@@ -58,8 +60,10 @@ module Pandemic
               is_ready = IO.select([socket], nil, nil, @response_timeout)
               raise NodeTimedOut if is_ready.nil?
               response_size = socket.gets
-              if response_size
-                socket.read(response_size.strip.to_i)
+              if response_size && response_size.to_i >= 0
+                socket.read(response_size.to_i)
+              elsif response_size && response_size.to_i < 0
+                raise RequestFailed
               else
                 # nil response size
                 raise LostConnectionToNode

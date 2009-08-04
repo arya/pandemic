@@ -80,7 +80,11 @@ module Pandemic
     
       def handle_request(request)
         @current_request = Request.new(request)
-        response = @server.handle_client_request(@current_request)
+        response = begin
+          @server.handle_client_request(@current_request)
+        rescue Exception => e
+          warn("Unhandled exception in handle client request:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
+        end
         @current_request = nil
         return response
       end

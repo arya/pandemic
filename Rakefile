@@ -2,7 +2,7 @@ require 'rubygems'
 require 'rake'
 require 'echoe'
 
-Echoe.new('pandemic', '0.4.4') do |p|
+Echoe.new('pandemic', '0.4.5') do |p|
   p.description    = "A framework for distributing work for real-time services and offline tasks."
   p.url            = "https://github.com/arya/pandemic/"
   p.author         = "Arya Asemanfar"

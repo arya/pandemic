@@ -6,7 +6,6 @@ class FunctionalTest < Test::Unit::TestCase
     ignore_threads = Thread.list
     ARGV.replace(["-i", "0", "-c", "test/pandemic_server.yml"]) # :(
     Pandemic::ClientSide::Config.config_path = "test/pandemic_client.yml"
-    
     server = epidemic!
     server.handler = Class.new(Pandemic::ServerSide::Handler) do
       def process(body)
@@ -20,6 +19,7 @@ class FunctionalTest < Test::Unit::TestCase
     end.new
     client.extend(Pandemize)
     assert_equal "dlrow olleh", client.pandemic.request("hello world")
+    client.pandemic.shutdown
     server.stop
     wait_for_threads(ignore_threads)
   end
@@ -49,6 +49,7 @@ class FunctionalTest < Test::Unit::TestCase
     end.new
     client.extend(Pandemize)
     assert_equal "raboofraboof", client.pandemic.request("foobar")
+    client.pandemic.shutdown
     server.stop
     server2.stop
     wait_for_threads(ignore_threads)

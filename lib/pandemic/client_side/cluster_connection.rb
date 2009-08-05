@@ -7,7 +7,6 @@ module Pandemic
       class NodeTimedOut < StandardError; end
       class RequestFailed < StandardError; end
       
-      
       include Util
       def initialize
         Config.load
@@ -69,6 +68,11 @@ module Pandemic
             raise LostConnectionToNode
           end
         end
+      end
+      
+      def shutdown
+        @connections.each {|c| c.socket.close if c.alive? }
+        @maintain_minimum_connections_thread.kill if @maintain_minimum_connections_thread
       end
       
       private

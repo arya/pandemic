@@ -26,15 +26,11 @@ module Pandemic
           @connection_proxies[key] = ConnectionProxy.new(key, self)
           host, port = host_port(server_addr)
           Config.min_connections_per_server.times do
-            connection = create_connection(key)
-            if connection.alive?
-              @connections << connection
-              @available << connection
-              @grouped_connections[key] << connection
-              @grouped_available[key] << connection
-            end
+            add_connection_for_key(key)
           end
         end
+        
+        maintain_minimum_connections!
       end
       
       
@@ -98,7 +94,11 @@ module Pandemic
             if select_from.size > 0
               connection = select_from.pop
               connection.ensure_alive!
-              break unless connection.alive?
+              if !connection.alive?
+                # it's dead
+                delete_connection(connection)
+                next
+              end
               
               if key.nil?
                 @grouped_available[key].delete(connection)
@@ -149,7 +149,42 @@ module Pandemic
         Connection.new(host, port, key)
       end
       
-      #TODO: a thread to manage killing and reviving connections
+      def add_connection_for_key(key)
+        connection = create_connection(key)
+        if connection.alive?
+          @connections << connection
+          @available << connection
+          @grouped_connections[key] << connection
+          @grouped_available[key] << connection
+        end
+      end
+      
+      def delete_connection(connection)
+        @connections.delete(connection)
+        @available.delete(connection)
+        @grouped_connections[connection.key].delete(connection)
+        @grouped_available[connection.key].delete(connection)
+      end
+      
+      def maintain_minimum_connections!
+        return if @maintain_minimum_connections_thread
+        @maintain_minimum_connections_thread = Thread.new do
+          loop do
+            sleep 60 #arbitrary
+            @mutex.synchronize do
+              @grouped_connections.keys.each do |key|
+                currently_exist = @grouped_connections[key].size
+                if currently_exist < Config.min_connections_per_server
+                  (Config.min_connections_per_server - currently_exist).times do
+                    add_connection_for_key(key)
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+      
     end
   end
 end

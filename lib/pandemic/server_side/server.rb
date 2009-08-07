@@ -27,6 +27,8 @@ module Pandemic
       end
       attr_reader :host, :port, :running
       def initialize(bind_to)
+        write_pid_file
+        
         @host, @port = host_port(bind_to)
         @clients = []
         @total_clients = 0
@@ -52,7 +54,6 @@ module Pandemic
         raise "You must specify a handler" unless @handler
         
         @listener = TCPServer.new(@host, @port)
-        write_pid_file
         @running = true
         @running_since = Time.now
         

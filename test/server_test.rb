@@ -35,7 +35,6 @@ class ServerTest < Test::Unit::TestCase
     
     Pandemic::ServerSide::Config.expects(:pid_file).at_least_once.returns("test/pandemic.pid")
     Pandemic::ServerSide::Config.expects(:servers).at_least_once.returns([])
-    @server = Pandemic::ServerSide::Server.new("localhost:4000")
     
     @tcpserver = mock()
     TCPServer.expects(:new).with("localhost", 4000).returns(@tcpserver)
@@ -50,6 +49,8 @@ class ServerTest < Test::Unit::TestCase
     @tcpserver.expects(:accept).once.raises(Pandemic::ServerSide::Server::StopServer)
     
     @tcpserver.expects(:close)
+    
+    @server = Pandemic::ServerSide::Server.new("localhost:4000")
     
     @server.handler = mock(:new)
     @server.start

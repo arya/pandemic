@@ -2,6 +2,7 @@ module Pandemic
   module ServerSide
     class Client
       REQUEST_FLAGS = {:async => 'a'}
+      EMPTY_STRING = ""
       REQUEST_REGEXP = /^([0-9]+)(?: ([#{REQUEST_FLAGS.values.join('')}]*))?$/
       class DisconnectClient < Exception; end
       include Util
@@ -22,21 +23,21 @@ module Pandemic
           @listener_thread = Thread.new do
             begin
               while @server.running
-                debug("Waiting for incoming request")
+                # debug("Waiting for incoming request")
                 request = @connection.gets
-                info("Received incoming request")
+                # info("Received incoming request")
                 @received_requests += 1
                 
                 if request.nil?
-                  debug("Incoming request is nil")
+                  # debug("Incoming request is nil")
                   @connection.close
                   @connection = nil
                   break
                 elsif request.strip! =~ REQUEST_REGEXP
-                  size, flags = $1.to_i, $2.to_s.split("")
-                  debug("Reading request body (size #{size})")
+                  size, flags = $1.to_i, $2.to_s.split(EMPTY_STRING)
+                  # debug("Reading request body (size #{size})")
                   body = @connection.read(size)
-                  debug("Finished reading request body")
+                  # debug("Finished reading request body")
                   if flags.include?(REQUEST_FLAGS[:async])
                     Thread.new do
                       handle_request(body)
@@ -45,18 +46,18 @@ module Pandemic
                   else
                     response = handle_request(body)
                     if response
-                      debug("Writing response to client")
+                      # debug("Writing response to client")
 
                       # the connection could be closed, we'll let it be rescued if it is.
                       @connection.write("#{response.size}\n#{response}")
                       @connection.flush
-                      debug("Finished writing response to client")
+                      # debug("Finished writing response to client")
                     else
-                      debug("Writing error code to client")
+                      # debug("Writing error code to client")
                       
                       @connection.write("-1\n")
                       @connection.flush
-                      debug("Finished writing error code to client")
+                      # debug("Finished writing error code to client")
                     end
                     @responded_requests.inc
                   end

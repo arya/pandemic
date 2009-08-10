@@ -29,18 +29,18 @@ module Pandemic
       end
     
       def client_request(request, body)
-        debug("Sending client's request to peer")
-        debug("Connection pool has #{@connection_pool.available_count} of #{@connection_pool.connections_count} connections available")
+        # debug("Sending client's request to peer")
+        # debug("Connection pool has #{@connection_pool.available_count} of #{@connection_pool.connections_count} connections available")
         # TODO: Consider adding back threads here if it will be faster that way in Ruby 1.9
         @connection_pool.with_connection do |connection|
           if connection && !connection.closed?
             @pending_requests.synchronize do
               @pending_requests[request.hash] = request
             end
-            debug("Writing client's request")
+            # debug("Writing client's request")
             connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
             connection.flush
-            debug("Finished writing client's request")
+            # debug("Finished writing client's request")
           end # TODO: else? fail silently? reconnect?
         end
       end
@@ -55,15 +55,15 @@ module Pandemic
           begin
             debug("Incoming connection thread started")
             while @server.running
-              debug("Listening for incoming requests")
+              # debug("Listening for incoming requests")
               request = connection.gets
-              debug("Read incoming request from peer")
+              # debug("Read incoming request from peer")
               
               if request.nil?
-                debug("Incoming connection request is nil")
+                # debug("Incoming connection request is nil")
                 break
               else
-                debug("Received incoming (#{request.strip})")
+                # debug("Received incoming (#{request.strip})")
                 handle_incoming_request(request, connection) if request =~ /^PROCESS/
                 handle_incoming_response(request, connection) if request =~ /^RESPONSE/
               end
@@ -114,23 +114,23 @@ module Pandemic
       end
     
       def handle_incoming_request(request, connection)
-        debug("Identified as request")
+        # debug("Identified as request")
         if request.strip =~ /^PROCESS ([A-Za-z0-9]+) ([0-9]+)$/
           hash = $1
           size = $2.to_i
-          debug("Incoming request: #{hash} #{size}")
+          # debug("Incoming request: #{hash} #{size}")
           begin
-            debug("Reading request body")
+            # debug("Reading request body")
             request_body = connection.read(size)
-            debug("Finished reading request body")
+            # debug("Finished reading request body")
           rescue EOFError, TruncatedDataError
-            debug("Failed to read request body")
+            # debug("Failed to read request body")
             # TODO: what to do here?
             return false
           rescue Exception => e
             warn("Unhandled exception in incoming request read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           end
-          debug("Processing body")
+          # debug("Processing body")
           process_request(hash, request_body)
         else
           warn("Malformed incoming request: #{request.strip}")
@@ -143,13 +143,13 @@ module Pandemic
         if response.strip =~ /^RESPONSE ([A-Za-z0-9]+) ([0-9]+)$/
           hash = $1
           size = $2.to_i
-          debug("Incoming response: #{hash} #{size}")
+          # debug("Incoming response: #{hash} #{size}")
           begin
-            debug("Reading response body")
+            # debug("Reading response body")
             response_body = connection.read(size)
-            debug("Finished reading response body")
+            # debug("Finished reading response body")
           rescue EOFError, TruncatedDataError
-            debug("Failed to read response body")
+            # debug("Failed to read response body")
             # TODO: what to do here?
             return false
           rescue Exception => e
@@ -167,14 +167,14 @@ module Pandemic
       def process_request(hash, body)
         Thread.new do
           begin
-            debug("Starting processing thread (#{hash})")
+            # debug("Starting processing thread (#{hash})")
             response = @server.process(body)
-            debug("Processing finished (#{hash})")
+            # debug("Processing finished (#{hash})")
             @connection_pool.with_connection do |connection|
-              debug( "Sending response (#{hash})")
+              # debug( "Sending response (#{hash})")
               connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
               connection.flush
-              debug( "Finished sending response (#{hash})")
+              # debug( "Finished sending response (#{hash})")
             end
           rescue Exception => e
             warn("Unhandled exception in process request thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
@@ -185,10 +185,10 @@ module Pandemic
       def process_response(hash, body)
         Thread.new do
           begin
-            debug("Finding original request (#{hash})")
+            # debug("Finding original request (#{hash})")
             original_request = @pending_requests.synchronize { @pending_requests.delete(hash) }
             if original_request
-              debug("Found original request, adding response")
+              # debug("Found original request, adding response")
               original_request.add_response(body) 
             else
               warn("Original response not found (#{hash})")

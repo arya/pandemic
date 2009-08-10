@@ -12,7 +12,7 @@ module Pandemic
       @max_connections = options[:max_connections] || 10
       @min_connections = options[:min_connections] || 1
       @connect_at_define = options.include?(:connect_at_define) ? options[:connect_at_define] : true
-      @timeout = options[:timeout] || 3
+      @timeout = MONITOR_TIMEOUT_AVAILABLE ? options[:timeout] || 3 : nil
     end
     
     def add_connection!

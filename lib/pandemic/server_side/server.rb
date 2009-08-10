@@ -57,14 +57,14 @@ module Pandemic
         @running = true
         @running_since = Time.now
         
-        debug("Connecting to peers")
+        # debug("Connecting to peers")
         @peers.values.each { |peer| peer.connect }
 
         @listener_thread = Thread.new do
           begin
             while @running
               begin
-                debug("Listening")
+                # debug("Listening")
                 conn = @listener.accept
                 Thread.new(conn) { |c| handle_connection(c) }
               rescue Errno::ECONNABORTED, Errno::EINTR # TODO: what else can wrong here? this should be more robust.
@@ -95,15 +95,15 @@ module Pandemic
           connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if TCP_NO_DELAY_AVAILABLE
         
           identification = connection.gets.strip
-          info("Incoming connection from #{connection.peeraddr.values_at(3,1).join(":")} (#{identification})")
+          # info("Incoming connection from #{connection.peeraddr.values_at(3,1).join(":")} (#{identification})")
           if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/
-            debug("Recognized as peer")
+            # debug("Recognized as peer")
             host, port = host_port($1)
             matching_peer = @peers.values.detect { |peer| [peer.host, peer.port] == [host, port] }
             if matching_peer
-              debug("Found matching peer")
+              # debug("Found matching peer")
             else
-              debug("Didn't find matching peer, adding it")
+              # debug("Didn't find matching peer, adding it")
               matching_peer = @peers.synchronize do
                 hostport = "#{host}:#{port}"
                 @servers.push(hostport) unless @servers.include?(hostport)
@@ -112,13 +112,13 @@ module Pandemic
             end
             matching_peer.add_incoming_connection(connection)
           elsif identification =~ /^CLIENT$/
-            debug("Recognized as client")
+            # debug("Recognized as client")
             @clients_mutex.synchronize do
               @clients << Client.new(connection, self).listen
               @total_clients += 1
             end
           elsif identification =~ /^stats$/
-            debug("Stats request received")
+            # debug("Stats request received")
             print_stats(connection)
           else
             debug("Unrecognized connection. Closing.")
@@ -130,10 +130,10 @@ module Pandemic
       end
     
       def handle_client_request(request)
-        info("Handling client request")
+        # info("Handling client request")
         map = @handler_instance.partition(request, connection_statuses)
         request.max_responses = map.size
-        debug("Sending client request to #{map.size} handlers (#{request.hash})")
+        # debug("Sending client request to #{map.size} handlers (#{request.hash})")
         
         map.each do |peer, body|
           if @peers[peer]
@@ -142,7 +142,7 @@ module Pandemic
         end
         
         if map[signature]
-          debug("Processing #{request.hash}")
+          # debug("Processing #{request.hash}")
           Thread.new do
             begin
               request.add_response(self.process(map[signature]))
@@ -154,10 +154,10 @@ module Pandemic
         
         @requests_per_second.hit
         
-        debug("Waiting for responses")
+        # debug("Waiting for responses")
         request.wait_for_responses
         
-        debug("Done waiting for responses, calling reduce")
+        # debug("Done waiting for responses, calling reduce")
         @handler_instance.reduce(request)
       end
     
@@ -173,7 +173,7 @@ module Pandemic
       end
     
       def signature
-        "#{@host}:#{@port}"
+        @signature ||= "#{@host}:#{@port}"
       end
             
       def connection_statuses

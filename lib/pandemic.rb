@@ -30,6 +30,7 @@ require 'pandemic/client_side/pandemize'
 TCP_NO_DELAY_AVAILABLE =
     RUBY_VERSION < '1.9' ? Socket.constants.include?('TCP_NODELAY') : Socket.constants.include?(:TCP_NODELAY)
 
+MONITOR_TIMEOUT_AVAILABLE = (RUBY_VERSION < '1.9')
 def epidemic!(options = {})
   if $pandemic_logger.nil?
     $pandemic_logger = Logger.new(options[:log_file] || "pandemic.log")

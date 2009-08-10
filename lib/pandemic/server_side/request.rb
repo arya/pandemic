@@ -32,10 +32,10 @@ module Pandemic
             @@late_responses.inc
             return  
           end
-          debug("Adding response")
+          # debug("Adding response")
           @responses << response
           if @max_responses && @responses.size >= @max_responses
-            debug("Hit max responses, waking up waiting thread")
+            # debug("Hit max responses, waking up waiting thread")
             wakeup_waiting_thread
             @complete = true
           end
@@ -61,6 +61,12 @@ module Pandemic
         @responses_mutex.synchronize do
           return if @complete
           if Config.response_timeout <= 0
+            @waiter.wait
+          elsif !MONITOR_TIMEOUT_AVAILABLE
+            Thread.new do
+              sleep Config.response_timeout
+              wakeup_waiting_thread
+            end
             @waiter.wait
           else
             @waiter.wait(Config.response_timeout)

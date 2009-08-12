@@ -34,7 +34,7 @@ class PeerTest < Test::Unit::TestCase
     
     should "send client request to peer connection" do
       request, body = stub(:hash => "asdasdfadsf"), "hello world"
-      @connection_pool.expects(:available_count => 1, :connections_count => 1)
+      @connection_pool.stubs(:available_count => 1, :connections_count => 1)
       conn = mock()
       @connection_pool.expects(:with_connection).yields(conn)
       

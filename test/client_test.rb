@@ -6,15 +6,20 @@ class ClientTest < Test::Unit::TestCase
   context "with a client object" do
     setup do
       @server = mock()
-      @server.expects(:running).returns(true).then.returns(false)
+      @server.stubs(:client_closed)
+      @server.stubs(:handle_client_request)
+      @server.expects(:running).at_least_once.returns(true).then.returns(false)
       @connection = mock()
-      @connection.expects(:peeraddr).returns(['','','',''])
+      @connection.stubs(:write)
+      @connection.stubs(:flush)
+      @connection.stubs(:peeraddr).returns(['','','',''])
       @connection.expects(:nil?).returns(false).at_least_once
       @client = Pandemic::ServerSide::Client.new(@connection, @server)
     end
     
     should "read size from the connection" do
       @connection.expects(:gets).returns("5\n")
+      @connection.expects(:read).with(5)
       @server.expects(:client_closed).with(@client)
       @client.listen
       wait_for_threads
@@ -34,7 +39,9 @@ class ClientTest < Test::Unit::TestCase
       
       request = mock()
       Pandemic::ServerSide::Request.expects(:new).returns(request)
-      @server.expects(:handle_client_request).with(request)
+      @server.expects(:handle_client_request).with(request).returns(nil)
+      @connection.stubs(:write)
+      @connection.stubs(:flush)
       
       @server.expects(:client_closed).with(@client)
       @client.listen    

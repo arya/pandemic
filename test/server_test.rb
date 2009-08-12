@@ -14,9 +14,11 @@ class ServerTest < Test::Unit::TestCase
       @tcpserver = mock()
       TCPServer.expects(:new).with("localhost", 4000).returns(@tcpserver)
       
-      @conn = mock(:peeraddr => ['','','',''])
+      @conn = mock()
+      @conn.stubs(:peeraddr => ['','','',''])
       @tcpserver.expects(:accept).twice.returns(@conn).then.raises(Pandemic::ServerSide::Server::StopServer)
       peer = mock()
+      peer.stubs(:add_incoming_connection)
       @conn.expects(:setsockopt).with(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       
       @conn.expects(:gets).returns("SERVER localhost:4001\n")
@@ -91,7 +93,8 @@ class ServerTest < Test::Unit::TestCase
       TCPServer.expects(:new).with("localhost", 4000).returns(@tcpserver)
       @peer.expects(:connect).once
       
-      @conn = mock(:peeraddr => ['','','',''])
+      @conn = mock()
+      @conn.stubs(:peeraddr => ['','','',''])
       @tcpserver.expects(:accept).twice.returns(@conn).then.raises(Pandemic::ServerSide::Server::StopServer)
       client = mock()
       @conn.expects(:setsockopt).with(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
@@ -115,7 +118,8 @@ class ServerTest < Test::Unit::TestCase
       TCPServer.expects(:new).with("localhost", 4000).returns(@tcpserver)
       @peer.expects(:connect).once
       
-      @conn = mock(:peeraddr => ['','','',''])
+      @conn = mock()
+      @conn.stubs(:peeraddr => ['','','',''])
       @tcpserver.expects(:accept).twice.returns(@conn).then.raises(Pandemic::ServerSide::Server::StopServer)
       @tcpserver.expects(:close)
       @peer.expects(:disconnect)
@@ -146,7 +150,7 @@ class ServerTest < Test::Unit::TestCase
       handler = mock()
       handler_class.expects(:new).once.returns(handler)
       request = mock()
-      request.expects(:hash).at_least_once.returns("abcddef134123")
+      request.stubs(:hash => "abcddef134123")
       @peer.expects(:connected?).returns(true)
       handler.expects(:partition).with(request, is_a(Hash)).returns({"localhost:4000" => "1", "localhost:4001" => "2"})
       request.expects(:max_responses=).with(2)

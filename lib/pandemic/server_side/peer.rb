@@ -15,12 +15,12 @@ module Pandemic
       end
       
       def connect
-        debug("Forced connection to peer")
+        # debug("Forced connection to peer")
         @connection_pool.connect
       end
       
       def disconnect
-        debug("Disconnecting from peer")
+        # debug("Disconnecting from peer")
         @connection_pool.disconnect
       end
       
@@ -31,29 +31,41 @@ module Pandemic
       def client_request(request, body)
         # debug("Sending client's request to peer")
         # debug("Connection pool has #{@connection_pool.available_count} of #{@connection_pool.connections_count} connections available")
-        # TODO: Consider adding back threads here if it will be faster that way in Ruby 1.9
-        @connection_pool.with_connection do |connection|
-          if connection && !connection.closed?
-            @pending_requests.synchronize do
-              @pending_requests[request.hash] = request
+
+        successful = true
+        @pending_requests.synchronize do
+          @pending_requests[request.hash] = request
+        end
+        begin
+          @connection_pool.with_connection do |connection|
+            if connection && !connection.closed?
+              # debug("Writing client's request")
+              connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
+              connection.flush
+              # debug("Finished writing client's request")
+            else
+              successful = false
             end
-            # debug("Writing client's request")
-            connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
-            connection.flush
-            # debug("Finished writing client's request")
-          end # TODO: else? fail silently? reconnect?
+          end
+        rescue Exception
+          @pending_requests.synchronize { @pending_requests.delete(request.hash) }
+          raise
+        else
+          if !successful
+            @pending_requests.synchronize { @pending_requests.delete(request.hash) }
+          end
         end
       end
     
       def add_incoming_connection(conn)
-        debug("Adding incoming connection")
+        # debug("Adding incoming connection")
 
         connect # if we're not connected, we should be
 
         
         thread = Thread.new(conn) do |connection|
           begin
-            debug("Incoming connection thread started")
+            # debug("Incoming connection thread started")
             while @server.running
               # debug("Listening for incoming requests")
               request = connection.gets
@@ -71,7 +83,7 @@ module Pandemic
           rescue Exception => e
             warn("Unhandled exception in peer listener thread:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
           ensure
-            debug("Incoming connection closing")
+            # debug("Incoming connection closing")
             conn.close if conn && !conn.closed?
             @inc_threads_mutex.synchronize { @incoming_connection_listeners.delete(Thread.current)}
             if @incoming_connection_listeners.empty?
@@ -95,9 +107,9 @@ module Pandemic
             connection = TCPSocket.new(@host, @port)
           rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED => e
             connection = nil
-            debug("Connection timeout or refused: #{e.inspect}")
+            # debug("Connection timeout or refused: #{e.inspect}")
             if retries == 0
-              debug("Retrying connection")
+              # debug("Retrying connection")
               retries += 1
               sleep 0.01
               retry

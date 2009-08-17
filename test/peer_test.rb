@@ -39,7 +39,7 @@ class PeerTest < Test::Unit::TestCase
       @connection_pool.expects(:with_connection).yields(conn)
       
       conn.stubs(:closed? => false)
-      conn.expects(:write).with("PROCESS #{request.hash} #{body.size}\n#{body}")
+      conn.expects(:write).with("P#{request.hash}#{[body.size].pack('N')}#{body}")
       conn.expects(:flush)
       
       @peer.client_request(request, body)

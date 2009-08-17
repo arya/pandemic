@@ -40,7 +40,7 @@ module Pandemic
           @connection_pool.with_connection do |connection|
             if connection && !connection.closed?
               # debug("Writing client's request")
-              connection.write("PROCESS #{request.hash} #{body.size}\n#{body}")
+              connection.write("P#{request.hash}#{[body.size].pack('N')}#{body}")
               connection.flush
               # debug("Finished writing client's request")
             else
@@ -68,7 +68,7 @@ module Pandemic
             # debug("Incoming connection thread started")
             while @server.running
               # debug("Listening for incoming requests")
-              request = connection.gets
+              request = connection.read(15)
               # debug("Read incoming request from peer")
               
               if request.nil?
@@ -76,8 +76,8 @@ module Pandemic
                 break
               else
                 # debug("Received incoming (#{request.strip})")
-                handle_incoming_request(request, connection) if request =~ /^PROCESS/
-                handle_incoming_response(request, connection) if request =~ /^RESPONSE/
+                handle_incoming_request(request, connection) if request =~ /^P/
+                handle_incoming_response(request, connection) if request =~ /^R/
               end
             end
           rescue Exception => e
@@ -127,52 +127,40 @@ module Pandemic
     
       def handle_incoming_request(request, connection)
         # debug("Identified as request")
-        if request.strip =~ /^PROCESS ([A-Za-z0-9]+) ([0-9]+)$/
-          hash = $1
-          size = $2.to_i
-          # debug("Incoming request: #{hash} #{size}")
-          begin
-            # debug("Reading request body")
-            request_body = connection.read(size)
-            # debug("Finished reading request body")
-          rescue EOFError, TruncatedDataError
-            # debug("Failed to read request body")
-            # TODO: what to do here?
-            return false
-          rescue Exception => e
-            warn("Unhandled exception in incoming request read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
-          end
-          # debug("Processing body")
-          process_request(hash, request_body)
-        else
-          warn("Malformed incoming request: #{request.strip}")
-          # when the incoming request was malformed
-          # TODO: what to do here? 
+        hash = request[1,10]
+        size = request[11, 4].unpack('N').first
+        # debug("Incoming request: #{hash} #{size}")
+        begin
+          # debug("Reading request body")
+          request_body = connection.read(size)
+          # debug("Finished reading request body")
+        rescue EOFError, TruncatedDataError
+          # debug("Failed to read request body")
+          # TODO: what to do here?
+          return false
+        rescue Exception => e
+          warn("Unhandled exception in incoming request read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
         end
+        # debug("Processing body")
+        process_request(hash, request_body)
       end
     
       def handle_incoming_response(response, connection)
-        if response.strip =~ /^RESPONSE ([A-Za-z0-9]+) ([0-9]+)$/
-          hash = $1
-          size = $2.to_i
-          # debug("Incoming response: #{hash} #{size}")
-          begin
-            # debug("Reading response body")
-            response_body = connection.read(size)
-            # debug("Finished reading response body")
-          rescue EOFError, TruncatedDataError
-            # debug("Failed to read response body")
-            # TODO: what to do here?
-            return false
-          rescue Exception => e
-            warn("Unhandled exception in incoming response read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
-          end
-          process_response(hash, response_body)
-        else
-          warn("Malformed incoming response: #{response.strip}")
-          # when the incoming response was malformed
-          # TODO: what to do here? 
+        hash = response[1,10]
+        size = response[11, 4].unpack('N').first
+        # debug("Incoming response: #{hash} #{size}")
+        begin
+          # debug("Reading response body")
+          response_body = connection.read(size)
+          # debug("Finished reading response body")
+        rescue EOFError, TruncatedDataError
+          # debug("Failed to read response body")
+          # TODO: what to do here?
+          return false
+        rescue Exception => e
+          warn("Unhandled exception in incoming response read:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
         end
+        process_response(hash, response_body)
       end
     
     
@@ -184,7 +172,7 @@ module Pandemic
             # debug("Processing finished (#{hash})")
             @connection_pool.with_connection do |connection|
               # debug( "Sending response (#{hash})")
-              connection.write("RESPONSE #{hash} #{response.size}\n#{response}")
+              connection.write("R#{hash}#{[response.size].pack('N')}#{response}")
               connection.flush
               # debug( "Finished sending response (#{hash})")
             end

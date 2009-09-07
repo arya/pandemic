@@ -3,9 +3,9 @@ TEST_DIR = File.dirname(__FILE__)
   $LOAD_PATH.unshift "#{TEST_DIR}/../#{dir}"
 end
 
+require 'rubygems'
 require 'test/unit'
 require 'pandemic'
-require 'rubygems'
 require 'shoulda'
 require 'mocha'
 

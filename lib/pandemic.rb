@@ -6,6 +6,7 @@ require 'yaml'
 require 'digest/md5'
 require 'logger'
 require 'optparse'
+require 'eventmachine'
 
 require 'pandemic/util'
 require 'pandemic/connection_pool'
@@ -20,11 +21,18 @@ require 'pandemic/server_side/request'
 require 'pandemic/server_side/handler'
 require 'pandemic/server_side/processor'
 
+require 'pandemic/server_side/event_machine/connection_shell'
+require 'pandemic/server_side/event_machine/stats_connection'
+require 'pandemic/server_side/event_machine/client_connection'
+require 'pandemic/server_side/event_machine/peer_connection'
+
 require 'pandemic/client_side/config'
 require 'pandemic/client_side/cluster_connection'
 require 'pandemic/client_side/connection'
 require 'pandemic/client_side/connection_proxy'
 require 'pandemic/client_side/pandemize'
+
+
 
 TCP_NO_DELAY_AVAILABLE =
     RUBY_VERSION < '1.9' ? Socket.constants.include?('TCP_NODELAY') : Socket.constants.include?(:TCP_NODELAY)

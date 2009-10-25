@@ -52,26 +52,28 @@ module Pandemic
     
       def start
         raise "You must specify a handler" unless @handler
-        
-        @listener = TCPServer.new(@host, @port)
-        @running = true
-        @running_since = Time.now
-        
+                
         # debug("Connecting to peers")
-        @peers.values.each { |peer| peer.connect }
 
-        @listener_thread = Thread.new do
+        EM.run do
           begin
-            while @running
-              begin
-                # debug("Listening")
-                conn = @listener.accept
-                Thread.new(conn) { |c| handle_connection(c) }
-              rescue Errno::ECONNABORTED, Errno::EINTR # TODO: what else can wrong here? this should be more robust.
-                debug("Connection accepted aborted")
-                conn.close if conn && !conn.closed?
-              end
-            end
+            @running = true
+            @running_since = Time.now
+          
+            EventMachine::ConnectionShell.default_delegate = self
+            EM.start_server @host, @port, EventMachine::ConnectionShell
+            
+            @peers.values.each { |peer| peer.connect }
+            # while @running
+            #   begin
+            #     # debug("Listening")
+            #     conn = @listener.accept
+            #     Thread.new(conn) { |c| handle_connection(c) }
+            #   rescue Errno::ECONNABORTED, Errno::EINTR # TODO: what else can wrong here? this should be more robust.
+            #     debug("Connection accepted aborted")
+            #     conn.close if conn && !conn.closed?
+            #   end
+            # end
           rescue StopServer
             info("Stopping server")
             remove_pid_file
@@ -84,17 +86,16 @@ module Pandemic
           end
         end
       end
-    
+
       def stop
+        # TODO: impl for EM
         @running = false
         @listener_thread.raise(StopServer)
       end
     
-      def handle_connection(connection)
+      def handle_data(identification, connection)
         begin
-          connection.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1) if TCP_NO_DELAY_AVAILABLE
-        
-          identification = connection.gets.strip
+          identification = identification.strip
           # info("Incoming connection from #{connection.peeraddr.values_at(3,1).join(":")} (#{identification})")
           if identification =~ /^SERVER ([a-zA-Z0-9.]+:[0-9]+)$/
             # debug("Recognized as peer")
@@ -114,7 +115,7 @@ module Pandemic
           elsif identification =~ /^CLIENT$/
             # debug("Recognized as client")
             @clients_mutex.synchronize do
-              @clients << Client.new(connection, self).listen
+              @clients << Client.new(connection, self)
               @total_clients += 1
             end
           elsif identification =~ /^stats$/
@@ -122,19 +123,28 @@ module Pandemic
             print_stats(connection)
           else
             debug("Unrecognized connection. Closing.")
-            connection.close # i dunno you
+            connection.close_connection # i dunno you
           end
         rescue Exception => e
           warn("Unhandled exception in handle connection method:\n#{e.inspect}\n#{e.backtrace.join("\n")}")
         end
       end
     
-      def handle_client_request(request)
+      def handle_client_request(request, client)
         # info("Handling client request")
         map = @handler_instance.partition(request, connection_statuses)
+        # puts "#{request.hash} Server received"
         request.max_responses = map.size
         # debug("Sending client request to #{map.size} handlers (#{request.hash})")
         
+        # debug("Waiting for responses")
+        request.wait_for_responses do
+          # debug("Done waiting for responses, calling reduce")
+          # puts "#{request.hash} writing to client"
+          client.response(@handler_instance.reduce(request))
+        end
+        
+        # puts "#{request.hash} sending to peers"
         map.each do |peer, body|
           if @peers[peer]
             @peers[peer].client_request(request, body)
@@ -153,12 +163,6 @@ module Pandemic
         end
         
         @requests_per_second.hit
-        
-        # debug("Waiting for responses")
-        request.wait_for_responses
-        
-        # debug("Done waiting for responses, calling reduce")
-        @handler_instance.reduce(request)
       end
     
       def process(body)
@@ -203,7 +207,7 @@ module Pandemic
       
       private
       def print_stats(connection)
-        begin
+        EventMachine::StatsConnection.new(connection) do
           stats = collect_stats
           str = []
           str << "Uptime: #{stats[:uptime]}"
@@ -219,9 +223,9 @@ module Pandemic
           str << "Pending Jobs: #{stats[:jobs_pending]}"
           str << "Requests per Second (10 sec): #{"%.1f" % stats[:rps_10]}"
           str << "Requests per Second (lifetime): #{"%.1f" % stats[:rps_lifetime]}"
-          connection.puts(str.join("\n"))
-        end while (s = connection.gets) && (s.strip == "stats" || s.strip == "")
-        connection.close if connection && !connection.closed?
+          str << "Event Machine Connection Count: #{stats[:connection_count]}"
+          str.join("\n")
+        end
       end
       
       def debug(msg)
@@ -264,6 +268,7 @@ module Pandemic
         
         results[:uptime] = Time.now - @running_since
         results[:rps_lifetime] = results[:num_requests] / results[:uptime]
+        results[:connection_count] = EM.connection_count
         
         results
       end

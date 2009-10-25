@@ -1,3 +1,4 @@
+require 'set'
 module Pandemic
   module ServerSide
     class Request    
@@ -5,6 +6,8 @@ module Pandemic
       
       @@request_count = MutexCounter.new
       @@late_responses = MutexCounter.new
+      
+      @@in_queue = Set.new
       attr_reader :body
       attr_accessor :max_responses
       attr_accessor :data
@@ -24,7 +27,9 @@ module Pandemic
         @responses_mutex = Monitor.new
         @waiter = @responses_mutex.new_cond
         @complete = false
+        @@in_queue.add(self.hash) 
       end
+      # EM.schedule { EM.add_periodic_timer(1) { puts @@in_queue.entries.inspect} } 
     
       def add_response(response)
         @responses_mutex.synchronize do
@@ -36,42 +41,29 @@ module Pandemic
           @responses << response
           if @max_responses && @responses.size >= @max_responses
             # debug("Hit max responses, waking up waiting thread")
-            wakeup_waiting_thread
+            @@in_queue.delete(self.hash)
             @complete = true
+            wakeup_waiting_thread
           end
         end
       end
       
       def wakeup_waiting_thread
-        @waiter.signal if @waiter
+        EM.cancel_timer(@timer) if @timer
+        @response_block.call
       end
     
       def responses
         @responses # its frozen so we don't have to worry about mutex
       end
       
-      def cancel!
-        # consider telling peers that they should stop, but for now this is fine.
-        @responses_mutex.synchronize do
-          wakeup_waiting_thread
-        end
-      end
-    
-      def wait_for_responses
-        @responses_mutex.synchronize do
-          return if @complete
-          if Config.response_timeout <= 0
-            @waiter.wait
-          elsif !MONITOR_TIMEOUT_AVAILABLE
-            Thread.new do
-              sleep Config.response_timeout
-              wakeup_waiting_thread
-            end
-            @waiter.wait
-          else
-            @waiter.wait(Config.response_timeout)
+      def wait_for_responses(&block)
+        @response_block = block
+        if Config.response_timeout > 0
+          @timer = EM.add_timer(Config.response_timeout) do
+            @responses.freeze
+            block.call
           end
-          @responses.freeze
         end
       end
       
